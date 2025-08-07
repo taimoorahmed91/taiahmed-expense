@@ -16,10 +16,7 @@ import {
   User, 
   Target, 
   Tag, 
-  Bell, 
   Download, 
-  Palette, 
-  Shield,
   DollarSign,
   Save,
   Plus,
@@ -57,20 +54,6 @@ export const SettingsOverview = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
-  // Settings state
-  const [notifications, setNotifications] = useState({
-    budgetAlerts: true,
-    weeklyReports: false,
-    monthlyReports: true,
-    expenseReminders: true
-  });
-  
-  const [preferences, setPreferences] = useState({
-    currency: 'zł',
-    dateFormat: 'DD/MM/YYYY',
-    theme: 'system',
-    language: 'en'
-  });
 
   const [newBudget, setNewBudget] = useState({ amount: '', period: 'monthly', category_id: '' });
   const [newCategory, setNewCategory] = useState({ name: '', color: '#3B82F6', icon: 'DollarSign' });
@@ -284,36 +267,6 @@ export const SettingsOverview = () => {
     }
   };
 
-  const saveNotificationSettings = async () => {
-    // In a real app, this would save to the database
-    localStorage.setItem('expense_notifications', JSON.stringify(notifications));
-    toast({
-      title: "Settings saved",
-      description: "Your notification preferences have been updated.",
-    });
-  };
-
-  const savePreferences = async () => {
-    // In a real app, this would save to the database
-    localStorage.setItem('expense_preferences', JSON.stringify(preferences));
-    toast({
-      title: "Preferences saved", 
-      description: "Your application preferences have been updated.",
-    });
-  };
-
-  // Load saved settings on component mount
-  useEffect(() => {
-    const savedNotifications = localStorage.getItem('expense_notifications');
-    if (savedNotifications) {
-      setNotifications(JSON.parse(savedNotifications));
-    }
-
-    const savedPreferences = localStorage.getItem('expense_preferences');
-    if (savedPreferences) {
-      setPreferences(JSON.parse(savedPreferences));
-    }
-  }, []);
 
   if (loading) {
     return (
@@ -343,7 +296,7 @@ export const SettingsOverview = () => {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Profile
@@ -355,18 +308,6 @@ export const SettingsOverview = () => {
           <TabsTrigger value="categories" className="flex items-center gap-2">
             <Tag className="h-4 w-4" />
             Categories
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            Alerts
-          </TabsTrigger>
-          <TabsTrigger value="preferences" className="flex items-center gap-2">
-            <Palette className="h-4 w-4" />
-            Preferences
-          </TabsTrigger>
-          <TabsTrigger value="data" className="flex items-center gap-2">
-            <Download className="h-4 w-4" />
-            Data
           </TabsTrigger>
         </TabsList>
 
@@ -557,216 +498,6 @@ export const SettingsOverview = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Notification Preferences
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="font-medium">Budget Alerts</p>
-                    <p className="text-sm text-muted-foreground">
-                      Get notified when you're approaching your budget limits
-                    </p>
-                  </div>
-                  <Switch 
-                    checked={notifications.budgetAlerts}
-                    onCheckedChange={(checked) => setNotifications({ ...notifications, budgetAlerts: checked })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="font-medium">Weekly Reports</p>
-                    <p className="text-sm text-muted-foreground">
-                      Receive weekly spending summaries
-                    </p>
-                  </div>
-                  <Switch 
-                    checked={notifications.weeklyReports}
-                    onCheckedChange={(checked) => setNotifications({ ...notifications, weeklyReports: checked })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="font-medium">Monthly Reports</p>
-                    <p className="text-sm text-muted-foreground">
-                      Receive monthly spending summaries
-                    </p>
-                  </div>
-                  <Switch 
-                    checked={notifications.monthlyReports}
-                    onCheckedChange={(checked) => setNotifications({ ...notifications, monthlyReports: checked })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="font-medium">Expense Reminders</p>
-                    <p className="text-sm text-muted-foreground">
-                      Get reminded to log your daily expenses
-                    </p>
-                  </div>
-                  <Switch 
-                    checked={notifications.expenseReminders}
-                    onCheckedChange={(checked) => setNotifications({ ...notifications, expenseReminders: checked })}
-                  />
-                </div>
-              </div>
-
-              <Button onClick={saveNotificationSettings} className="flex items-center gap-2">
-                <Save className="h-4 w-4" />
-                Save Notification Settings
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="preferences">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5" />
-                Application Preferences
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="currency">Default Currency</Label>
-                  <Select value={preferences.currency} onValueChange={(value) => setPreferences({ ...preferences, currency: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="zł">Polish Złoty (zł)</SelectItem>
-                      <SelectItem value="$">US Dollar ($)</SelectItem>
-                      <SelectItem value="€">Euro (€)</SelectItem>
-                      <SelectItem value="£">British Pound (£)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="dateFormat">Date Format</Label>
-                  <Select value={preferences.dateFormat} onValueChange={(value) => setPreferences({ ...preferences, dateFormat: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
-                      <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
-                      <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="theme">Theme</Label>
-                  <Select value={preferences.theme} onValueChange={(value) => setPreferences({ ...preferences, theme: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
-                      <SelectItem value="system">System</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="language">Language</Label>
-                  <Select value={preferences.language} onValueChange={(value) => setPreferences({ ...preferences, language: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="pl">Polski</SelectItem>
-                      <SelectItem value="es">Español</SelectItem>
-                      <SelectItem value="fr">Français</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <Button onClick={savePreferences} className="flex items-center gap-2">
-                <Save className="h-4 w-4" />
-                Save Preferences
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="data">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Download className="h-5 w-5" />
-                  Data Export
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-muted-foreground">
-                  Export your expense data to CSV format for backup or analysis in external tools.
-                </p>
-                <Button onClick={exportData} className="flex items-center gap-2">
-                  <Download className="h-4 w-4" />
-                  Export All Data
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  Account Security
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-4">
-                  <Button variant="outline" className="w-full justify-start">
-                    Change Password
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    Two-Factor Authentication
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    Active Sessions
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-destructive">
-              <CardHeader>
-                <CardTitle className="text-destructive">Danger Zone</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  These actions cannot be undone. Please be careful.
-                </p>
-                <div className="space-y-2">
-                  <Button variant="destructive" className="w-full">
-                    Delete All Data
-                  </Button>
-                  <Button variant="destructive" className="w-full">
-                    Delete Account
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
       </Tabs>
     </div>
   );
