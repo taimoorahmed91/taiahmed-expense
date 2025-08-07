@@ -74,30 +74,34 @@ export const ExpenseList = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Receipt className="w-5 h-5" />
+    <Card className="border-2 border-muted/50 shadow-lg">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-3 text-xl">
+          <div className="p-2 rounded-lg bg-secondary/50">
+            <Receipt className="w-5 h-5 text-secondary-foreground" />
+          </div>
           Recent Expenses
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {expenses.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No expenses yet. Add your first expense above!
+          <div className="text-center py-12 text-muted-foreground">
+            <Receipt className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p className="text-lg">No expenses yet</p>
+            <p className="text-sm">Add your first expense to get started!</p>
           </div>
         ) : (
           expenses.map((expense) => (
-            <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg bg-card">
+            <div key={expense.id} className="flex items-center justify-between p-5 border-2 rounded-xl bg-gradient-to-r from-card to-card/90 hover:shadow-md transition-all duration-200 border-muted/30 hover:border-primary/30">
               <div className="flex items-center gap-3">
                 <div 
-                  className="w-4 h-4 rounded-full flex-shrink-0" 
+                  className="w-5 h-5 rounded-full flex-shrink-0 shadow-sm" 
                   style={{ backgroundColor: expense.category.color }}
                 />
                 <div>
-                  <div className="font-medium">${expense.amount.toFixed(2)}</div>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <MapPin className="w-3 h-3" />
+                  <div className="font-semibold text-lg">{expense.amount.toFixed(2)} zł</div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                    <MapPin className="w-4 h-4" />
                     {expense.description}
                   </div>
                 </div>

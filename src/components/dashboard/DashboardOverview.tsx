@@ -1,174 +1,212 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { 
   TrendingUp, 
   TrendingDown, 
   DollarSign, 
-  CreditCard,
-  PieChart,
-  Calendar
+  ShoppingCart,
+  Calendar,
+  Target
 } from 'lucide-react';
 
+interface DashboardStats {
+  totalExpenses: number;
+  monthlyTotal: number;
+  transactionCount: number;
+  averageExpense: number;
+  topCategory: string;
+  monthlyBudget: number;
+}
+
 export const DashboardOverview = () => {
-  // Mock data - in real app, this would come from Supabase
-  const stats = {
-    totalExpenses: 2847.50,
-    monthlyBudget: 3500.00,
-    transactions: 47,
-    categories: 8
+  const { user } = useAuth();
+  const [stats, setStats] = useState<DashboardStats>({
+    totalExpenses: 0,
+    monthlyTotal: 0,
+    transactionCount: 0,
+    averageExpense: 0,
+    topCategory: 'No expenses yet',
+    monthlyBudget: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      fetchDashboardStats();
+    }
+  }, [user]);
+
+  const fetchDashboardStats = async () => {
+    try {
+      const currentMonth = new Date().getMonth() + 1;
+      const currentYear = new Date().getFullYear();
+
+      // Get monthly expenses
+      const { data: monthlyExpenses, error: monthlyError } = await supabase
+        .from('expense_transactions')
+        .select('amount, category_id, expense_categories(name)')
+        .eq('user_id', user?.id)
+        .gte('transaction_date', `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`);
+
+      if (monthlyError) throw monthlyError;
+
+      // Get total expenses
+      const { data: totalExpenses, error: totalError } = await supabase
+        .from('expense_transactions')
+        .select('amount')
+        .eq('user_id', user?.id);
+
+      if (totalError) throw totalError;
+
+      // Get monthly budget
+      const { data: budgetData, error: budgetError } = await supabase
+        .from('expense_budgets')
+        .select('amount')
+        .eq('user_id', user?.id)
+        .eq('period', 'monthly')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (budgetError) throw budgetError;
+
+      // Calculate stats
+      const monthlyTotal = monthlyExpenses?.reduce((sum, exp) => sum + Number(exp.amount), 0) || 0;
+      const totalAmount = totalExpenses?.reduce((sum, exp) => sum + Number(exp.amount), 0) || 0;
+      const transactionCount = monthlyExpenses?.length || 0;
+      const averageExpense = transactionCount > 0 ? monthlyTotal / transactionCount : 0;
+
+      // Find top category
+      const categoryTotals = monthlyExpenses?.reduce((acc, exp) => {
+        const categoryName = exp.expense_categories?.name || 'Other';
+        acc[categoryName] = (acc[categoryName] || 0) + Number(exp.amount);
+        return acc;
+      }, {} as Record<string, number>) || {};
+
+      const topCategory = Object.keys(categoryTotals).length > 0 
+        ? Object.entries(categoryTotals).sort(([,a], [,b]) => b - a)[0][0]
+        : 'No expenses yet';
+
+      const monthlyBudget = budgetData?.[0]?.amount || 0;
+
+      setStats({
+        totalExpenses: totalAmount,
+        monthlyTotal,
+        transactionCount,
+        averageExpense,
+        topCategory,
+        monthlyBudget
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const budgetUsed = (stats.totalExpenses / stats.monthlyBudget) * 100;
+  if (loading) {
+    return (
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i} className="animate-pulse">
+            <CardContent className="p-6">
+              <div className="h-20 bg-muted rounded"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
-  const recentTransactions = [
-    { id: 1, description: 'Grocery Shopping', amount: 127.50, category: 'Food', date: '2024-01-07' },
-    { id: 2, description: 'Coffee Shop', amount: 15.75, category: 'Food', date: '2024-01-07' },
-    { id: 3, description: 'Gas Station', amount: 65.00, category: 'Transport', date: '2024-01-06' },
-    { id: 4, description: 'Netflix Subscription', amount: 15.99, category: 'Entertainment', date: '2024-01-06' },
-  ];
-
-  const topCategories = [
-    { name: 'Food & Dining', amount: 856.25, color: '#ef4444' },
-    { name: 'Transportation', amount: 445.80, color: '#3b82f6' },
-    { name: 'Entertainment', amount: 298.15, color: '#8b5cf6' },
-    { name: 'Shopping', amount: 267.30, color: '#f59e0b' },
-  ];
+  const budgetProgress = stats.monthlyBudget > 0 ? (stats.monthlyTotal / stats.monthlyBudget) * 100 : 0;
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-border/20" style={{ background: 'var(--gradient-card)', boxShadow: 'var(--shadow-card)' }}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">This Month</CardTitle>
+            <DollarSign className="h-5 w-5 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.monthlyTotal.toFixed(2)} zł</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.transactionCount} transactions
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 border-secondary/20 bg-gradient-to-br from-secondary/5 to-secondary/10">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
-            <DollarSign className="w-4 h-4 text-muted-foreground" />
+            <TrendingUp className="h-5 w-5 text-secondary-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">${stats.totalExpenses.toFixed(2)}</div>
-            <div className="flex items-center text-sm text-green-500 mt-1">
-              <TrendingDown className="w-4 h-4 mr-1" />
-              12% from last month
-            </div>
+            <div className="text-2xl font-bold">{stats.totalExpenses.toFixed(2)} zł</div>
+            <p className="text-xs text-muted-foreground">
+              All time total
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="border-border/20" style={{ background: 'var(--gradient-card)', boxShadow: 'var(--shadow-card)' }}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Monthly Budget</CardTitle>
-            <CreditCard className="w-4 h-4 text-muted-foreground" />
+        <Card className="border-2 border-accent/20 bg-gradient-to-br from-accent/5 to-accent/10">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Average Expense</CardTitle>
+            <ShoppingCart className="h-5 w-5 text-accent-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">${stats.monthlyBudget.toFixed(2)}</div>
-            <div className="flex items-center text-sm text-primary mt-1">
-              <TrendingUp className="w-4 h-4 mr-1" />
-              {budgetUsed.toFixed(1)}% used
-            </div>
+            <div className="text-2xl font-bold">{stats.averageExpense.toFixed(2)} zł</div>
+            <p className="text-xs text-muted-foreground">
+              Per transaction
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="border-border/20" style={{ background: 'var(--gradient-card)', boxShadow: 'var(--shadow-card)' }}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Transactions</CardTitle>
-            <Calendar className="w-4 h-4 text-muted-foreground" />
+        <Card className="border-2 border-muted/20 bg-gradient-to-br from-muted/5 to-muted/10">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Top Category</CardTitle>
+            <Target className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.transactions}</div>
-            <div className="flex items-center text-sm text-blue-500 mt-1">
-              <TrendingUp className="w-4 h-4 mr-1" />
-              8 this week
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/20" style={{ background: 'var(--gradient-card)', boxShadow: 'var(--shadow-card)' }}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Categories</CardTitle>
-            <PieChart className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.categories}</div>
-            <div className="flex items-center text-sm text-purple-500 mt-1">
-              <TrendingUp className="w-4 h-4 mr-1" />
-              2 new this month
-            </div>
+            <div className="text-lg font-bold truncate">{stats.topCategory}</div>
+            <p className="text-xs text-muted-foreground">
+              Most spent category
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Budget Progress */}
-      <Card className="border-border/20" style={{ background: 'var(--gradient-card)', boxShadow: 'var(--shadow-card)' }}>
-        <CardHeader>
-          <CardTitle className="text-foreground">Monthly Budget Progress</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Spent: ${stats.totalExpenses.toFixed(2)}</span>
-              <span className="text-muted-foreground">Remaining: ${(stats.monthlyBudget - stats.totalExpenses).toFixed(2)}</span>
-            </div>
-            <Progress value={budgetUsed} className="h-3" />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>0%</span>
-              <span>50%</span>
-              <span>100%</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Transactions */}
-        <Card className="border-border/20" style={{ background: 'var(--gradient-card)', boxShadow: 'var(--shadow-card)' }}>
+      {stats.monthlyBudget > 0 && (
+        <Card className="border-2 border-warning/20">
           <CardHeader>
-            <CardTitle className="text-foreground">Recent Transactions</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Monthly Budget Progress
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentTransactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-3 rounded-lg border border-border/20">
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{transaction.description}</p>
-                    <p className="text-sm text-muted-foreground">{transaction.category} • {transaction.date}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-foreground">${transaction.amount}</p>
-                  </div>
-                </div>
-              ))}
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">
+                {stats.monthlyTotal.toFixed(2)} zł of {stats.monthlyBudget.toFixed(2)} zł
+              </span>
+              <span className={`text-sm font-semibold ${budgetProgress > 80 ? 'text-destructive' : 'text-primary'}`}>
+                {budgetProgress.toFixed(1)}%
+              </span>
             </div>
+            <Progress 
+              value={Math.min(budgetProgress, 100)} 
+              className={`h-3 ${budgetProgress > 100 ? 'bg-destructive/20' : ''}`}
+            />
+            {budgetProgress > 80 && (
+              <p className={`text-sm ${budgetProgress > 100 ? 'text-destructive' : 'text-warning-foreground'}`}>
+                {budgetProgress > 100 ? 'Budget exceeded!' : 'Approaching budget limit'}
+              </p>
+            )}
           </CardContent>
         </Card>
-
-        {/* Top Categories */}
-        <Card className="border-border/20" style={{ background: 'var(--gradient-card)', boxShadow: 'var(--shadow-card)' }}>
-          <CardHeader>
-            <CardTitle className="text-foreground">Top Categories</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {topCategories.map((category, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div 
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: category.color }}
-                      />
-                      <span className="text-sm font-medium text-foreground">{category.name}</span>
-                    </div>
-                    <span className="text-sm font-semibold text-foreground">${category.amount}</span>
-                  </div>
-                  <Progress 
-                    value={(category.amount / stats.totalExpenses) * 100} 
-                    className="h-2"
-                  />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      )}
     </div>
   );
 };

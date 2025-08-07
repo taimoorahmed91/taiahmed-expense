@@ -106,7 +106,7 @@ export const ExpenseForm = () => {
     try {
       // Get current date in CET timezone
       const now = new Date();
-      const cetDate = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Berlin"}));
+      const cetDate = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Warsaw"}));
       
       const { error } = await supabase
         .from('expense_transactions')
@@ -144,76 +144,81 @@ export const ExpenseForm = () => {
   };
 
   return (
-    <Card className="max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Plus className="w-5 h-5" />
-          Add New Expense
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
-            <div className="relative">
-              <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+    <div className="space-y-8">
+      <Card className="border-2 border-primary/20 shadow-xl bg-gradient-to-br from-card to-card/80">
+        <CardHeader className="pb-6">
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Plus className="w-6 h-6 text-primary" />
+            </div>
+            Add New Expense
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-3">
+              <Label htmlFor="amount" className="text-base font-medium">Amount (PLN)</Label>
+              <div className="relative">
+                <span className="absolute left-4 top-4 text-lg font-semibold text-muted-foreground">zł</span>
+                <Input
+                  id="amount"
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="pl-12 h-14 text-lg font-medium border-2 focus:border-primary"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="place" className="text-base font-medium">Place</Label>
               <Input
-                id="amount"
-                type="number"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="pl-10"
-                step="0.01"
-                min="0"
+                id="place"
+                type="text"
+                placeholder="Where did you spend?"
+                value={place}
+                onChange={(e) => setPlace(e.target.value)}
+                className="h-12 text-base border-2 focus:border-primary"
               />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="place">Place</Label>
-            <Input
-              id="place"
-              type="text"
-              placeholder="Where did you spend?"
-              value={place}
-              onChange={(e) => setPlace(e.target.value)}
-            />
-          </div>
+            <div className="space-y-3">
+              <Label htmlFor="category" className="text-base font-medium">Category</Label>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger className="h-12 text-base border-2 focus:border-primary">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id} className="py-3">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-4 h-4 rounded-full flex-shrink-0" 
+                          style={{ backgroundColor: category.color }}
+                        />
+                        <span className="text-base">{category.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: category.color }}
-                      />
-                      {category.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={loading}
-          >
-            {loading ? "Adding..." : "Add Expense"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-base font-semibold" 
+              disabled={loading}
+            >
+              {loading ? "Adding..." : "Add Expense"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
