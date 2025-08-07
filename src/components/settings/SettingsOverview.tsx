@@ -83,12 +83,16 @@ export const SettingsOverview = () => {
 
   const fetchUserData = async () => {
     try {
+      console.log('Fetching user data for user:', user?.id);
+      
       // Fetch profile
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('expense_profile')
         .select('*')
         .eq('user_id', user?.id)
         .single();
+
+      console.log('Profile data:', profileData, 'Profile error:', profileError);
 
       if (profileData) {
         setProfile({
@@ -98,24 +102,42 @@ export const SettingsOverview = () => {
         });
       }
 
-      // Fetch budgets
-      const { data: budgetData } = await supabase
+      // Fetch budgets with error handling
+      const { data: budgetData, error: budgetError } = await supabase
         .from('expense_budgets')
         .select('*')
         .eq('user_id', user?.id);
 
-      setBudgets(budgetData || []);
+      console.log('Budget data:', budgetData, 'Budget error:', budgetError);
+
+      if (budgetError) {
+        console.error('Budget fetch error:', budgetError);
+        // Don't throw, just log and continue
+      } else {
+        setBudgets(budgetData || []);
+      }
 
       // Fetch categories
-      const { data: categoryData } = await supabase
+      const { data: categoryData, error: categoryError } = await supabase
         .from('expense_categories')
         .select('*')
         .order('priority', { ascending: true });
 
-      setCategories(categoryData || []);
+      console.log('Category data:', categoryData, 'Category error:', categoryError);
+
+      if (categoryError) {
+        console.error('Category fetch error:', categoryError);
+      } else {
+        setCategories(categoryData || []);
+      }
 
     } catch (error) {
       console.error('Error fetching user data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load settings data. Some features may not work properly.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -151,9 +173,18 @@ export const SettingsOverview = () => {
   };
 
   const addBudget = async () => {
-    if (!newBudget.amount) return;
+    if (!newBudget.amount) {
+      toast({
+        title: "Error",
+        description: "Please enter a budget amount.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
+      console.log('Adding budget:', newBudget);
+      
       const { data, error } = await supabase
         .from('expense_budgets')
         .insert({
@@ -167,7 +198,12 @@ export const SettingsOverview = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      console.log('Budget insert result:', data, error);
+
+      if (error) {
+        console.error('Budget insert error:', error);
+        throw error;
+      }
 
       setBudgets([...budgets, data]);
       setNewBudget({ amount: '', period: 'monthly', category_id: '' });
@@ -177,9 +213,10 @@ export const SettingsOverview = () => {
         description: "New budget has been created successfully.",
       });
     } catch (error) {
+      console.error('Error adding budget:', error);
       toast({
         title: "Error",
-        description: "Failed to add budget. Please try again.",
+        description: `Failed to add budget: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -247,6 +284,37 @@ export const SettingsOverview = () => {
     }
   };
 
+  const saveNotificationSettings = async () => {
+    // In a real app, this would save to the database
+    localStorage.setItem('expense_notifications', JSON.stringify(notifications));
+    toast({
+      title: "Settings saved",
+      description: "Your notification preferences have been updated.",
+    });
+  };
+
+  const savePreferences = async () => {
+    // In a real app, this would save to the database
+    localStorage.setItem('expense_preferences', JSON.stringify(preferences));
+    toast({
+      title: "Preferences saved", 
+      description: "Your application preferences have been updated.",
+    });
+  };
+
+  // Load saved settings on component mount
+  useEffect(() => {
+    const savedNotifications = localStorage.getItem('expense_notifications');
+    if (savedNotifications) {
+      setNotifications(JSON.parse(savedNotifications));
+    }
+
+    const savedPreferences = localStorage.getItem('expense_preferences');
+    if (savedPreferences) {
+      setPreferences(JSON.parse(savedPreferences));
+    }
+  }, []);
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -254,11 +322,15 @@ export const SettingsOverview = () => {
           <h2 className="text-2xl font-bold">Settings</h2>
           <p className="text-muted-foreground">Loading your preferences...</p>
         </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="h-64 bg-muted rounded animate-pulse"></div>
-          </CardContent>
-        </Card>
+        <div className="grid gap-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="h-32 bg-muted rounded animate-pulse"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -547,6 +619,11 @@ export const SettingsOverview = () => {
                   />
                 </div>
               </div>
+
+              <Button onClick={saveNotificationSettings} className="flex items-center gap-2">
+                <Save className="h-4 w-4" />
+                Save Notification Settings
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -619,6 +696,11 @@ export const SettingsOverview = () => {
                   </Select>
                 </div>
               </div>
+
+              <Button onClick={savePreferences} className="flex items-center gap-2">
+                <Save className="h-4 w-4" />
+                Save Preferences
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
