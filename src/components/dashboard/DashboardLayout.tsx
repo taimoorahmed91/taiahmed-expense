@@ -31,7 +31,7 @@ export const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardL
   ];
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--gradient-card)' }}>
+    <div className="min-h-screen flex" style={{ background: 'var(--gradient-card)' }}>
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div 
@@ -42,8 +42,8 @@ export const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardL
 
       {/* Sidebar */}
       <div className={`
-        fixed top-0 left-0 z-50 h-full w-64 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        fixed top-0 left-0 z-50 h-full w-64 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `} style={{ background: 'var(--gradient-card)' }}>
         <div className="flex h-full flex-col border-r border-border/20">
           {/* Logo */}
@@ -121,7 +121,7 @@ export const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardL
       </div>
 
       {/* Main content */}
-      <div className="lg:ml-64">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
         <header className="flex h-16 items-center justify-between px-6 border-b border-border/20"
                 style={{ background: 'var(--gradient-card)' }}>
@@ -140,7 +140,7 @@ export const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardL
         </header>
 
         {/* Page content */}
-        <main className="p-6">
+        <main className="flex-1 p-6">
           {children}
         </main>
       </div>
