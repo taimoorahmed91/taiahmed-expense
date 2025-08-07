@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useAdmin } from '@/hooks/useAdmin';
 import { LoginPage } from '@/components/auth/LoginPage';
+import { AccessDenied } from '@/components/admin/AccessDenied';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { DashboardOverview } from '@/components/dashboard/DashboardOverview';
 import { ExpenseForm } from '@/components/expenses/ExpenseForm';
@@ -8,9 +10,10 @@ import { ExpenseList } from '@/components/expenses/ExpenseList';
 
 const Index = () => {
   const { user, loading } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdmin();
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  if (loading) {
+  if (loading || adminLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" 
            style={{ background: 'var(--gradient-card)' }}>
@@ -24,6 +27,11 @@ const Index = () => {
 
   if (!user) {
     return <LoginPage />;
+  }
+
+  // If user is logged in but not admin, show access denied
+  if (!isAdmin) {
+    return <AccessDenied />;
   }
 
   const renderTabContent = () => {
