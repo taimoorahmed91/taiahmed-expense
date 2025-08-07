@@ -8,6 +8,7 @@ import { DashboardOverview } from '@/components/dashboard/DashboardOverview';
 import { ExpenseForm } from '@/components/expenses/ExpenseForm';
 import { ExpenseList } from '@/components/expenses/ExpenseList';
 import { CorrectionList } from '@/components/corrections/CorrectionList';
+import { AnalyticsOverview } from '@/components/analytics/AnalyticsOverview';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -55,12 +56,7 @@ const Index = () => {
       case 'correction':
         return <CorrectionList />;
       case 'analytics':
-        return (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-foreground mb-4">Analytics & Reports</h2>
-            <p className="text-muted-foreground">Coming soon - Detailed analytics and insights</p>
-          </div>
-        );
+        return <AnalyticsOverview />;
       case 'settings':
         return (
           <div className="text-center py-12">
