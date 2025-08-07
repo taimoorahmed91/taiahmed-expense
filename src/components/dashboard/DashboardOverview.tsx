@@ -210,7 +210,7 @@ export const DashboardOverview = () => {
         </Card>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="space-y-6">
         <ExpenseTrendsChart />
         <ExpenseDistributionChart />
       </div>
