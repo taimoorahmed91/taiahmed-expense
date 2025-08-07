@@ -119,90 +119,93 @@ export const ExpenseDistributionChart = () => {
     }
   };
 
-  const renderPieChart = (data: DistributionData[], title: string) => (
-    <div className="space-y-4">
-      <h4 className="text-sm font-medium text-center">{title}</h4>
-      {data.length > 0 ? (
-        <ChartContainer config={{}} className="h-40">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={20}
-                outerRadius={60}
-                paddingAngle={2}
-                dataKey="value"
-              >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill} />
-                ))}
-              </Pie>
-              <ChartTooltip 
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload as DistributionData;
-                    return (
-                      <div className="bg-background border rounded-lg p-2 shadow-lg">
-                        <p className="font-medium">{data.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {data.value.toFixed(2)} zł ({data.percentage.toFixed(1)}%)
-                        </p>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartContainer>
-      ) : (
-        <div className="h-40 flex items-center justify-center text-muted-foreground">
-          No expenses
-        </div>
-      )}
-      <div className="space-y-1">
-        {data.slice(0, 3).map((item, index) => (
-          <div key={index} className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: item.fill }}
-              />
-              <span className="truncate">{item.name}</span>
-            </div>
-            <span className="font-medium">{item.percentage.toFixed(1)}%</span>
+  const renderPieChart = (data: DistributionData[], title: string, icon: React.ReactNode) => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          {icon}
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {data.length > 0 ? (
+          <ChartContainer config={{}} className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={20}
+                  outerRadius={70}
+                  paddingAngle={2}
+                  dataKey="value"
+                >
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <ChartTooltip 
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload as DistributionData;
+                      return (
+                        <div className="bg-background border rounded-lg p-2 shadow-lg">
+                          <p className="font-medium">{data.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {data.value.toFixed(2)} zł ({data.percentage.toFixed(1)}%)
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        ) : (
+          <div className="h-48 flex items-center justify-center text-muted-foreground">
+            No expenses
           </div>
-        ))}
-      </div>
-    </div>
+        )}
+        <div className="space-y-1">
+          {data.slice(0, 4).map((item, index) => (
+            <div key={index} className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-3 h-3 rounded-full" 
+                  style={{ backgroundColor: item.fill }}
+                />
+                <span className="truncate">{item.name}</span>
+              </div>
+              <span className="font-medium">{item.percentage.toFixed(1)}%</span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="h-80 bg-muted rounded animate-pulse"></div>
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 lg:grid-cols-3">
+        {[...Array(3)].map((_, i) => (
+          <Card key={i}>
+            <CardContent className="p-6">
+              <div className="h-64 bg-muted rounded animate-pulse"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <PieChartIcon className="h-5 w-5" />
-          Expense Distribution
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {renderPieChart(distributionData.daily, "Today")}
-        {renderPieChart(distributionData.weekly, "Last 7 Days")}
-        {renderPieChart(distributionData.monthly, "Last 30 Days")}
-      </CardContent>
-    </Card>
+    <div className="grid gap-6 lg:grid-cols-3">
+      {renderPieChart(distributionData.daily, "Today's Expenses", <PieChartIcon className="h-5 w-5" />)}
+      {renderPieChart(distributionData.weekly, "Weekly Distribution", <PieChartIcon className="h-5 w-5" />)}
+      {renderPieChart(distributionData.monthly, "Monthly Distribution", <PieChartIcon className="h-5 w-5" />)}
+    </div>
   );
 };

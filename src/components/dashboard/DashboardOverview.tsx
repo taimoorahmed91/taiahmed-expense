@@ -210,10 +210,9 @@ export const DashboardOverview = () => {
         </Card>
       )}
 
-      <div className="space-y-6">
-        <ExpenseTrendsChart />
-        <ExpenseDistributionChart />
-      </div>
+      <ExpenseTrendsChart />
+      
+      <ExpenseDistributionChart />
     </div>
   );
 };
