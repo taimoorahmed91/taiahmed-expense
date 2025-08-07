@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { Plus, DollarSign } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 interface Category {
   id: string;
@@ -26,14 +26,12 @@ export const ExpenseForm = () => {
 
   // Default categories to create if none exist
   const defaultCategories = [
-    { name: 'Food & Dining', color: '#FF6B6B', icon: 'Utensils' },
-    { name: 'Transportation', color: '#4ECDC4', icon: 'Car' },
-    { name: 'Shopping', color: '#45B7D1', icon: 'ShoppingBag' },
-    { name: 'Entertainment', color: '#96CEB4', icon: 'Film' },
-    { name: 'Bills & Utilities', color: '#FFEAA7', icon: 'Receipt' },
-    { name: 'Healthcare', color: '#DDA0DD', icon: 'Heart' },
-    { name: 'Education', color: '#98D8C8', icon: 'BookOpen' },
-    { name: 'Other', color: '#F7DC6F', icon: 'Package' }
+    { name: 'Grocery', color: '#22C55E', icon: 'ShoppingCart' },
+    { name: 'Food and Dining', color: '#EF4444', icon: 'Utensils' },
+    { name: 'Transportation', color: '#3B82F6', icon: 'Car' },
+    { name: 'Entertainment', color: '#8B5CF6', icon: 'Film' },
+    { name: 'Bills and Utility', color: '#F59E0B', icon: 'Receipt' },
+    { name: 'Rental', color: '#06B6D4', icon: 'Home' }
   ];
 
   useEffect(() => {

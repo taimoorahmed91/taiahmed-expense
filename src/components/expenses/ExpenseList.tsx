@@ -39,7 +39,7 @@ export const ExpenseList = () => {
           description,
           transaction_date,
           created_at,
-          expense_categories!inner (
+          expense_categories (
             name,
             color
           )
