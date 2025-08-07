@@ -1,22 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Calendar, TrendingUp, BarChart3 } from 'lucide-react';
 
-interface CategoryData {
-  category: string;
+interface TrendPoint {
+  date: string;
   amount: number;
+}
+
+interface Category {
+  id: string;
+  name: string;
   color: string;
+  priority: number;
 }
 
 export const AnalyticsOverview = () => {
   const { user } = useAuth();
-  const [dailyData, setDailyData] = useState<CategoryData[]>([]);
-  const [weeklyData, setWeeklyData] = useState<CategoryData[]>([]);
-  const [monthlyData, setMonthlyData] = useState<CategoryData[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryTrends, setCategoryTrends] = useState<{
+    [categoryId: string]: {
+      daily: TrendPoint[];
+      weekly: TrendPoint[];
+      monthly: TrendPoint[];
+    }
+  }>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,85 +39,42 @@ export const AnalyticsOverview = () => {
   const fetchAnalyticsData = async () => {
     try {
       // Get categories
-      const { data: categories, error: categoriesError } = await supabase
+      const { data: categoriesData, error: categoriesError } = await supabase
         .from('expense_categories')
-        .select('id, name, color')
+        .select('id, name, color, priority')
         .order('priority', { ascending: true });
 
       if (categoriesError) throw categoriesError;
+      setCategories(categoriesData || []);
 
-      // Get date ranges
-      const today = new Date().toISOString().split('T')[0];
+      // Get last 3 months of data
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 3);
+
+      const { data: expenses, error } = await supabase
+        .from('expense_transactions')
+        .select('amount, transaction_date, category_id')
+        .eq('user_id', user?.id)
+        .gte('transaction_date', startDate.toISOString().split('T')[0])
+        .order('transaction_date', { ascending: true });
+
+      if (error) throw error;
+
+      // Process trends for each category
+      const trends: any = {};
       
-      const weekStart = new Date();
-      weekStart.setDate(weekStart.getDate() - 7);
-      const weekStartStr = weekStart.toISOString().split('T')[0];
-      
-      const monthStart = new Date();
-      monthStart.setDate(monthStart.getDate() - 30);
-      const monthStartStr = monthStart.toISOString().split('T')[0];
+      (categoriesData || []).forEach(category => {
+        const categoryExpenses = expenses?.filter(exp => exp.category_id === category.id) || [];
+        
+        trends[category.id] = {
+          daily: processDailyTrends(categoryExpenses),
+          weekly: processWeeklyTrends(categoryExpenses),
+          monthly: processMonthlyTrends(categoryExpenses)
+        };
+      });
 
-      // Fetch daily data (today)
-      const { data: dailyExpenses, error: dailyError } = await supabase
-        .from('expense_transactions')
-        .select('amount, expense_categories(id, name, color)')
-        .eq('user_id', user?.id)
-        .eq('transaction_date', today);
-
-      // Fetch weekly data (last 7 days)
-      const { data: weeklyExpenses, error: weeklyError } = await supabase
-        .from('expense_transactions')
-        .select('amount, expense_categories(id, name, color)')
-        .eq('user_id', user?.id)
-        .gte('transaction_date', weekStartStr);
-
-      // Fetch monthly data (last 30 days)
-      const { data: monthlyExpenses, error: monthlyError } = await supabase
-        .from('expense_transactions')
-        .select('amount, expense_categories(id, name, color)')
-        .eq('user_id', user?.id)
-        .gte('transaction_date', monthStartStr);
-
-      if (dailyError || weeklyError || monthlyError) {
-        throw dailyError || weeklyError || monthlyError;
-      }
-
-      // Process data for each period
-      const processData = (expenses: any[], allCategories: any[]): CategoryData[] => {
-        const categoryTotals: { [key: string]: { amount: number; color: string } } = {};
-
-        // Initialize all categories with 0
-        allCategories.forEach(cat => {
-          categoryTotals[cat.name] = { amount: 0, color: cat.color };
-        });
-
-        // Add actual expenses
-        expenses?.forEach(expense => {
-          const categoryName = expense.expense_categories?.name || 'Other';
-          const amount = Number(expense.amount);
-          const color = expense.expense_categories?.color || '#6B7280';
-          
-          if (categoryTotals[categoryName]) {
-            categoryTotals[categoryName].amount += amount;
-          } else {
-            categoryTotals[categoryName] = { amount, color };
-          }
-        });
-
-        return Object.entries(categoryTotals)
-          .map(([category, { amount, color }]) => ({
-            category: category.length > 12 ? category.substring(0, 12) + '...' : category,
-            amount,
-            color
-          }))
-          .filter(item => item.amount > 0)
-          .sort((a, b) => b.amount - a.amount);
-      };
-
-      setDailyData(processData(dailyExpenses || [], categories || []));
-      setWeeklyData(processData(weeklyExpenses || [], categories || []));
-      setMonthlyData(processData(monthlyExpenses || [], categories || []));
-
+      setCategoryTrends(trends);
     } catch (error) {
       console.error('Error fetching analytics data:', error);
     } finally {
@@ -114,95 +82,138 @@ export const AnalyticsOverview = () => {
     }
   };
 
-  const renderBarChart = (data: CategoryData[], title: string, icon: React.ReactNode, period: string) => {
-    const chartConfig = data.reduce((config, item) => {
-      config[item.category] = {
-        label: item.category,
-        color: item.color,
-      };
-      return config;
-    }, {} as any);
+  const processDailyTrends = (expenses: any[]): TrendPoint[] => {
+    const trends = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      const dayExpenses = expenses.filter(exp => exp.transaction_date === dateStr);
+      const amount = dayExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+      
+      trends.push({
+        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        amount
+      });
+    }
+    return trends;
+  };
+
+  const processWeeklyTrends = (expenses: any[]): TrendPoint[] => {
+    const trends = [];
+    for (let i = 11; i >= 0; i--) {
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() - (i * 7));
+      const startDate = new Date(endDate);
+      startDate.setDate(startDate.getDate() - 6);
+
+      const weekExpenses = expenses.filter(exp => {
+        const expDate = new Date(exp.transaction_date);
+        return expDate >= startDate && expDate <= endDate;
+      });
+      const amount = weekExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+
+      trends.push({
+        date: `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+        amount
+      });
+    }
+    return trends;
+  };
+
+  const processMonthlyTrends = (expenses: any[]): TrendPoint[] => {
+    const trends = [];
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+      const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+      const monthExpenses = expenses.filter(exp => {
+        const expDate = new Date(exp.transaction_date);
+        return expDate >= startOfMonth && expDate <= endOfMonth;
+      });
+      const amount = monthExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+
+      trends.push({
+        date: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        amount
+      });
+    }
+    return trends;
+  };
+
+  const renderCategoryChart = (category: Category, period: 'daily' | 'weekly' | 'monthly', icon: React.ReactNode) => {
+    const data = categoryTrends[category.id]?.[period] || [];
+    const maxAmount = Math.max(...data.map(d => d.amount), 0);
+    
+    const periodLabels = {
+      daily: 'Daily Trend (30 Days)',
+      weekly: 'Weekly Trend (12 Weeks)', 
+      monthly: 'Monthly Trend (6 Months)'
+    };
+
+    const chartConfig = {
+      amount: {
+        label: "Amount",
+        color: category.color,
+      },
+    };
 
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="w-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm">
             {icon}
-            {title}
+            <span className="truncate">{category.name}</span>
           </CardTitle>
+          <p className="text-xs text-muted-foreground">{periodLabels[period]}</p>
         </CardHeader>
-        <CardContent>
-          {data.length > 0 ? (
-            <ChartContainer config={chartConfig} className="h-80">
+        <CardContent className="pt-2">
+          {maxAmount > 0 ? (
+            <ChartContainer config={chartConfig} className="h-32">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <LineChart data={data}>
                   <XAxis 
-                    dataKey="category"
-                    tick={{ fontSize: 11 }}
+                    dataKey="date"
+                    tick={{ fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
+                    interval="preserveStartEnd"
                   />
                   <YAxis 
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(value) => `${value} zł`}
+                    width={35}
                   />
                   <ChartTooltip 
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="bg-background border rounded-lg p-3 shadow-lg">
-                            <p className="font-medium">{label}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {payload[0].value?.toLocaleString()} zł
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {period}
-                            </p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
+                    content={<ChartTooltipContent />}
+                    formatter={(value: number) => [`${value.toFixed(2)} zł`]}
                   />
-                  <Bar 
-                    dataKey="amount" 
-                    fill="#8884d8"
-                    radius={[4, 4, 0, 0]}
+                  <Line
+                    type="monotone"
+                    dataKey="amount"
+                    stroke={category.color}
+                    strokeWidth={2}
+                    dot={{ r: 2 }}
+                    activeDot={{ r: 3 }}
                   />
-                </BarChart>
+                </LineChart>
               </ResponsiveContainer>
             </ChartContainer>
           ) : (
-            <div className="h-80 flex items-center justify-center text-muted-foreground">
+            <div className="h-32 flex items-center justify-center text-muted-foreground">
               <div className="text-center">
-                <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>No expenses for {period.toLowerCase()}</p>
+                <p className="text-xs">No expenses</p>
               </div>
             </div>
           )}
-          
-          {data.length > 0 && (
-            <div className="mt-4 space-y-2">
-              <h4 className="text-sm font-medium">Top Categories</h4>
-              <div className="grid grid-cols-1 gap-2">
-                {data.slice(0, 5).map((item, index) => (
-                  <div key={index} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-sm" 
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <span className="truncate">{item.category}</span>
-                    </div>
-                    <span className="font-medium">{item.amount.toFixed(2)} zł</span>
-                  </div>
-                ))}
-              </div>
+          {maxAmount > 0 && (
+            <div className="mt-2 text-center">
+              <p className="text-xs font-medium">Total: {data.reduce((sum, d) => sum + d.amount, 0).toFixed(2)} zł</p>
             </div>
           )}
         </CardContent>
@@ -213,11 +224,15 @@ export const AnalyticsOverview = () => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid gap-6 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => (
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Category Analytics</h2>
+          <p className="text-muted-foreground">Loading detailed trends for each category...</p>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-3">
+          {[...Array(27)].map((_, i) => (
             <Card key={i}>
-              <CardContent className="p-6">
-                <div className="h-80 bg-muted rounded animate-pulse"></div>
+              <CardContent className="p-4">
+                <div className="h-32 bg-muted rounded animate-pulse"></div>
               </CardContent>
             </Card>
           ))}
@@ -228,11 +243,28 @@ export const AnalyticsOverview = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-3">
-        {renderBarChart(dailyData, "Daily Analytics", <Calendar className="h-5 w-5" />, "Today")}
-        {renderBarChart(weeklyData, "Weekly Analytics", <TrendingUp className="h-5 w-5" />, "Last 7 Days")}
-        {renderBarChart(monthlyData, "Monthly Analytics", <BarChart3 className="h-5 w-5" />, "Last 30 Days")}
+      <div className="text-center">
+        <h2 className="text-2xl font-bold mb-2">Category Analytics</h2>
+        <p className="text-muted-foreground">Detailed trends for each expense category</p>
       </div>
+      
+      {categories.map(category => (
+        <div key={category.id} className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div 
+              className="w-4 h-4 rounded-sm" 
+              style={{ backgroundColor: category.color }}
+            />
+            <h3 className="text-lg font-semibold">{category.name}</h3>
+          </div>
+          
+          <div className="grid gap-4 lg:grid-cols-3">
+            {renderCategoryChart(category, 'daily', <Calendar className="h-4 w-4" />)}
+            {renderCategoryChart(category, 'weekly', <TrendingUp className="h-4 w-4" />)}
+            {renderCategoryChart(category, 'monthly', <BarChart3 className="h-4 w-4" />)}
+          </div>
+        </div>
+      ))}
     </div>
   );
 };
