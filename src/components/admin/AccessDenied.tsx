@@ -1,11 +1,11 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Shield, Home } from 'lucide-react';
+import { Shield, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 export const AccessDenied = () => {
-  const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--gradient-card)' }}>
@@ -21,11 +21,12 @@ export const AccessDenied = () => {
           </p>
           
           <Button 
-            onClick={() => navigate('/')}
+            onClick={signOut}
+            variant="outline"
             className="flex items-center gap-2"
           >
-            <Home className="h-4 w-4" />
-            Go to Dashboard
+            <LogOut className="h-4 w-4" />
+            Sign Out
           </Button>
         </CardContent>
       </Card>
