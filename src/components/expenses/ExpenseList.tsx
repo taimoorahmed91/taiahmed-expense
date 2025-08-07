@@ -12,10 +12,15 @@ interface Expense {
   description: string;
   transaction_date: string;
   created_at: string;
+  user_id: string;
   category: {
     name: string;
     color: string;
   };
+  expense_profile?: {
+    email: string | null;
+    full_name: string | null;
+  } | null;
 }
 
 export const ExpenseList = () => {
@@ -39,9 +44,14 @@ export const ExpenseList = () => {
           description,
           transaction_date,
           created_at,
+          user_id,
           expense_categories (
             name,
             color
+          ),
+          expense_profile (
+            email,
+            full_name
           )
         `)
         .eq('user_id', user?.id)
@@ -50,7 +60,7 @@ export const ExpenseList = () => {
 
       if (error) throw error;
 
-      const formattedExpenses = data?.map(expense => ({
+      const formattedExpenses = data?.map((expense: any) => ({
         ...expense,
         category: expense.expense_categories as { name: string; color: string }
       })) || [];
@@ -112,6 +122,8 @@ export const ExpenseList = () => {
                 </Badge>
                 <div className="text-xs text-muted-foreground">
                   {formatDistanceToNow(new Date(expense.created_at), { addSuffix: true })}
+                  <br />
+                  Added by {expense.user_id === user?.id ? 'You' : (expense.expense_profile?.full_name || expense.expense_profile?.email || 'Unknown')}
                 </div>
               </div>
             </div>

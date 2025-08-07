@@ -37,11 +37,16 @@ interface Expense {
   transaction_date: string;
   created_at: string;
   category_id: string;
+  user_id: string;
   expense_categories: {
     id: string;
     name: string;
     color: string;
   };
+  expense_profile?: {
+    email: string | null;
+    full_name: string | null;
+  } | null;
 }
 
 interface Category {
@@ -83,17 +88,22 @@ export const CorrectionList = () => {
           transaction_date,
           created_at,
           category_id,
+          user_id,
           expense_categories (
             id,
             name,
             color
+          ),
+          expense_profile (
+            email,
+            full_name
           )
         `)
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setExpenses(data || []);
+      setExpenses((data as any[]) || []);
     } catch (error) {
       console.error('Error fetching expenses:', error);
       toast({
@@ -122,11 +132,16 @@ export const CorrectionList = () => {
 
   const handleEdit = (expense: Expense) => {
     setEditingExpense(expense);
+    // Convert date to datetime-local format
+    const dateTime = expense.transaction_date.includes('T') 
+      ? expense.transaction_date.slice(0, 16) 
+      : expense.transaction_date + 'T12:00';
+    
     setEditForm({
       amount: expense.amount.toString(),
       description: expense.description || '',
       category_id: expense.category_id,
-      transaction_date: expense.transaction_date
+      transaction_date: dateTime
     });
   };
 
@@ -252,14 +267,17 @@ export const CorrectionList = () => {
                     <div className="text-sm text-muted-foreground mt-1">
                       {expense.description}
                     </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="secondary">
-                        {expense.expense_categories.name}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(expense.created_at), { addSuffix: true })}
-                      </span>
-                    </div>
+                     <div className="flex items-center gap-2 mt-2">
+                       <Badge variant="secondary">
+                         {expense.expense_categories.name}
+                       </Badge>
+                       <span className="text-xs text-muted-foreground">
+                         {formatDistanceToNow(new Date(expense.created_at), { addSuffix: true })}
+                       </span>
+                       <span className="text-xs text-muted-foreground">
+                         • Added by {expense.user_id === user?.id ? 'You' : (expense.expense_profile?.full_name || expense.expense_profile?.email || 'Unknown')}
+                       </span>
+                     </div>
                   </div>
                 </div>
                 
@@ -320,10 +338,10 @@ export const CorrectionList = () => {
                           </Select>
                         </div>
                         <div>
-                          <Label htmlFor="date">Date</Label>
+                          <Label htmlFor="date">Date & Time</Label>
                           <Input
                             id="date"
-                            type="date"
+                            type="datetime-local"
                             value={editForm.transaction_date}
                             onChange={(e) => setEditForm({...editForm, transaction_date: e.target.value})}
                           />
