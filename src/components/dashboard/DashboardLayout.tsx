@@ -9,9 +9,12 @@ import {
   LogOut,
   Menu,
   X,
-  TrendingUp
+  TrendingUp,
+  Users
 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useAdmin } from '@/hooks/useAdmin';
+import { useNavigate } from 'react-router-dom';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -21,6 +24,8 @@ interface DashboardLayoutProps {
 
 export const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutProps) => {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const menuItems = [
@@ -88,6 +93,28 @@ export const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardL
                 </Button>
               );
             })}
+            
+            {/* Admin Section */}
+            {isAdmin && (
+              <>
+                <div className="pt-4 pb-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3">
+                    Admin
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start h-12 text-left"
+                  onClick={() => {
+                    navigate('/admin/users');
+                    setSidebarOpen(false);
+                  }}
+                >
+                  <Users className="w-5 h-5 mr-3" />
+                  User Management
+                </Button>
+              </>
+            )}
           </nav>
 
           {/* User Profile */}
