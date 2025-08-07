@@ -110,7 +110,8 @@ export const CorrectionList = () => {
     try {
       const { data, error } = await supabase
         .from('expense_categories')
-        .select('id, name, color');
+        .select('id, name, color')
+        .order('priority', { ascending: true });
 
       if (error) throw error;
       setCategories(data || []);

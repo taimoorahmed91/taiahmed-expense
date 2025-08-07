@@ -44,7 +44,8 @@ export const ExpenseForm = () => {
     try {
       const { data: categories, error } = await supabase
         .from('expense_categories')
-        .select('*');
+        .select('*')
+        .order('priority', { ascending: true });
 
       if (error) throw error;
 
