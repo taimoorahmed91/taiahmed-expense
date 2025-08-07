@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { ExpenseTrendsChart } from './ExpenseTrendsChart';
+import { ExpenseDistributionChart } from './ExpenseDistributionChart';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -207,6 +209,11 @@ export const DashboardOverview = () => {
           </CardContent>
         </Card>
       )}
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <ExpenseTrendsChart />
+        <ExpenseDistributionChart />
+      </div>
     </div>
   );
 };
