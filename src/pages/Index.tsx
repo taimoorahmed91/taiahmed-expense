@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { LoginPage } from '@/components/auth/LoginPage';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
