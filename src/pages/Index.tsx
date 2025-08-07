@@ -3,6 +3,8 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { LoginPage } from '@/components/auth/LoginPage';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { DashboardOverview } from '@/components/dashboard/DashboardOverview';
+import { ExpenseForm } from '@/components/expenses/ExpenseForm';
+import { ExpenseList } from '@/components/expenses/ExpenseList';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -30,9 +32,15 @@ const Index = () => {
         return <DashboardOverview />;
       case 'expenses':
         return (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-foreground mb-4">Expenses Management</h2>
-            <p className="text-muted-foreground">Coming soon - Add and manage your expenses</p>
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-foreground mb-2">Expenses Management</h2>
+              <p className="text-muted-foreground">Track your daily expenses</p>
+            </div>
+            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+              <ExpenseForm />
+              <ExpenseList />
+            </div>
           </div>
         );
       case 'analytics':
