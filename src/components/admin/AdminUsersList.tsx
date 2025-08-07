@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Users, UserCheck, Mail, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Users, UserCheck, Mail, Calendar, Crown, UserMinus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ExpenseProfile {
@@ -14,6 +15,7 @@ interface ExpenseProfile {
   avatar_url: string;
   created_at: string;
   updated_at: string;
+  is_admin: boolean;
 }
 
 export const AdminUsersList = () => {
@@ -57,6 +59,34 @@ export const AdminUsersList = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const toggleAdminStatus = async (userId: string, currentAdminStatus: boolean) => {
+    try {
+      const { error } = await supabase.rpc('toggle_admin_status', {
+        target_user_id: userId,
+        new_admin_status: !currentAdminStatus
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: `User ${!currentAdminStatus ? 'promoted to' : 'demoted from'} admin successfully.`,
+      });
+
+      // Refresh the users list
+      fetchUsers();
+    } catch (error) {
+      console.error('Error toggling admin status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update admin status. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -118,13 +148,41 @@ export const AdminUsersList = () => {
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  {user.email === 'taimoorahmed91@gmail.com' && (
-                    <Badge variant="secondary" className="mb-2">Admin</Badge>
-                  )}
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    Joined {formatDate(user.created_at)}
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    {user.is_admin && (
+                      <Badge variant="secondary" className="mb-2">
+                        <Crown className="h-3 w-3 mr-1" />
+                        Admin
+                      </Badge>
+                    )}
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      Joined {formatDate(user.created_at)}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {user.is_admin ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleAdminStatus(user.user_id, user.is_admin)}
+                        className="text-xs"
+                      >
+                        <UserMinus className="h-3 w-3 mr-1" />
+                        Demote
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => toggleAdminStatus(user.user_id, user.is_admin)}
+                        className="text-xs"
+                      >
+                        <Crown className="h-3 w-3 mr-1" />
+                        Promote
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>

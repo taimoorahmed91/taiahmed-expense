@@ -630,6 +630,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      toggle_admin_status: {
+        Args: { target_user_id: string; new_admin_status: boolean }
+        Returns: boolean
+      }
       update_session_activity: {
         Args: { session_token_param: string }
         Returns: boolean
