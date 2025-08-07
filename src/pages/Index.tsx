@@ -9,6 +9,7 @@ import { ExpenseForm } from '@/components/expenses/ExpenseForm';
 import { ExpenseList } from '@/components/expenses/ExpenseList';
 import { CorrectionList } from '@/components/corrections/CorrectionList';
 import { AnalyticsOverview } from '@/components/analytics/AnalyticsOverview';
+import { SettingsOverview } from '@/components/settings/SettingsOverview';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -58,12 +59,7 @@ const Index = () => {
       case 'analytics':
         return <AnalyticsOverview />;
       case 'settings':
-        return (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-foreground mb-4">Settings</h2>
-            <p className="text-muted-foreground">Coming soon - Customize your preferences</p>
-          </div>
-        );
+        return <SettingsOverview />;
       default:
         return <DashboardOverview />;
     }
