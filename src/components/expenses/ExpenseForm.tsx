@@ -44,13 +44,12 @@ export const ExpenseForm = () => {
     try {
       const { data: categories, error } = await supabase
         .from('expense_categories')
-        .select('*')
-        .eq('user_id', user?.id);
+        .select('*');
 
       if (error) throw error;
 
       if (categories.length === 0) {
-        // Create default categories
+        // Create default categories (only if user is admin)
         await createDefaultCategories();
       } else {
         setCategories(categories);
@@ -69,12 +68,7 @@ export const ExpenseForm = () => {
     try {
       const { data, error } = await supabase
         .from('expense_categories')
-        .insert(
-          defaultCategories.map(cat => ({
-            ...cat,
-            user_id: user?.id
-          }))
-        )
+        .insert(defaultCategories)
         .select();
 
       if (error) throw error;
@@ -84,6 +78,11 @@ export const ExpenseForm = () => {
       }
     } catch (error) {
       console.error('Error creating default categories:', error);
+      toast({
+        title: "Note",
+        description: "Only admins can create categories. Using existing categories.",
+        variant: "default",
+      });
     }
   };
 
