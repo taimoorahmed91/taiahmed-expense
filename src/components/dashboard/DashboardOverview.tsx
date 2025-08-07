@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { ExpenseTrendsChart } from './ExpenseTrendsChart';
 import { ExpenseDistributionChart } from './ExpenseDistributionChart';
+import { BudgetAlerts } from '@/components/budget/BudgetAlerts';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -210,6 +211,8 @@ export const DashboardOverview = () => {
         </Card>
       )}
 
+      <BudgetAlerts />
+      
       <ExpenseTrendsChart />
       
       <ExpenseDistributionChart />

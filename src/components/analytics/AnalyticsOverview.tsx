@@ -4,6 +4,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { BudgetVsActual } from '@/components/budget/BudgetVsActual';
 import { Calendar, TrendingUp, BarChart3 } from 'lucide-react';
 
 interface TrendPoint {
@@ -244,9 +245,11 @@ export const AnalyticsOverview = () => {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Category Analytics</h2>
-        <p className="text-muted-foreground">Detailed trends for each expense category</p>
+        <h2 className="text-2xl font-bold mb-2">Analytics & Budget Analysis</h2>
+        <p className="text-muted-foreground">Detailed trends and budget comparisons</p>
       </div>
+      
+      <BudgetVsActual />
       
       {categories.map(category => (
         <div key={category.id} className="space-y-4">
