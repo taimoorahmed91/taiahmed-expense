@@ -64,6 +64,46 @@ export const SettingsOverview = () => {
     }
   }, [user]);
 
+  const getStartDate = (period: string) => {
+    const today = new Date();
+    
+    switch (period) {
+      case 'weekly':
+        // Start from Monday of current week
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+        return new Date(today.setDate(diff)).toISOString().split('T')[0];
+      
+      case 'yearly':
+        // Start from January 1st of current year
+        return new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0];
+      
+      default: // monthly
+        // Start from 1st of current month
+        return new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+    }
+  };
+
+  const getEndDate = (period: string) => {
+    const today = new Date();
+    
+    switch (period) {
+      case 'weekly':
+        // End on Sunday of current week
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? 0 : 7);
+        return new Date(today.setDate(diff)).toISOString().split('T')[0];
+      
+      case 'yearly':
+        // End on December 31st of current year
+        return new Date(today.getFullYear(), 11, 31).toISOString().split('T')[0];
+      
+      default: // monthly
+        // End on last day of current month
+        return new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+    }
+  };
+
   const fetchUserData = async () => {
     try {
       console.log('Fetching user data for user:', user?.id);
@@ -175,8 +215,8 @@ export const SettingsOverview = () => {
           amount: parseFloat(newBudget.amount),
           period: newBudget.period,
           category_id: newBudget.category_id || null,
-          start_date: new Date().toISOString().split('T')[0],
-          end_date: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0]
+          start_date: getStartDate(newBudget.period),
+          end_date: getEndDate(newBudget.period)
         })
         .select()
         .single();
