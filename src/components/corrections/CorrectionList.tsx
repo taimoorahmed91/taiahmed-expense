@@ -26,8 +26,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { formatDistanceToNow } from 'date-fns';
-import { Edit, Trash2, Search, CheckCircle, XCircle } from 'lucide-react';
+import { formatDistanceToNow, format } from 'date-fns';
+import { Edit, Trash2, Search, CheckCircle, XCircle, Calendar, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Expense {
@@ -37,11 +37,16 @@ interface Expense {
   transaction_date: string;
   created_at: string;
   category_id: string;
+  user_id: string;
   expense_categories: {
     id: string;
     name: string;
     color: string;
   };
+  expense_profile: {
+    email: string;
+    full_name: string;
+  } | null;
 }
 
 interface Category {
@@ -83,6 +88,7 @@ export const CorrectionList = () => {
           transaction_date,
           created_at,
           category_id,
+          user_id,
           expense_categories (
             id,
             name,
@@ -93,7 +99,22 @@ export const CorrectionList = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setExpenses(data || []);
+
+      // Get user profile information for the current user
+      const { data: profileData } = await supabase
+        .from('expense_profile')
+        .select('user_id, email, full_name')
+        .eq('user_id', user?.id)
+        .single();
+
+      // Map expenses with profile information
+      const expensesWithProfile = data?.map(expense => ({
+        ...expense,
+        expense_profile: expense.user_id === user?.id ? profileData : null
+      })) || [];
+
+      setExpenses(expensesWithProfile);
+
     } catch (error) {
       console.error('Error fetching expenses:', error);
       toast({
@@ -256,9 +277,20 @@ export const CorrectionList = () => {
                       <Badge variant="secondary">
                         {expense.expense_categories.name}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(expense.created_at), { addSuffix: true })}
-                      </span>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="w-3 h-3" />
+                        <span>Transaction: {format(new Date(expense.transaction_date), 'MMM dd, yyyy')}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>Added: {format(new Date(expense.created_at), 'MMM dd, yyyy HH:mm')}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <User className="w-3 h-3" />
+                        <span>By: {expense.user_id === user?.id ? 'You' : (expense.expense_profile?.full_name || expense.expense_profile?.email || 'Unknown User')}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
