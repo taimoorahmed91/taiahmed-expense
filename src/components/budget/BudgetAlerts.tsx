@@ -18,6 +18,7 @@ interface BudgetAlert {
   percentage: number;
   status: 'good' | 'warning' | 'exceeded';
   endDate: string;
+  startDate: string;
 }
 
 export const BudgetAlerts = () => {
@@ -58,10 +59,6 @@ export const BudgetAlerts = () => {
         const endDate = new Date(budget.end_date);
         
         if (currentDate >= startDate && currentDate <= endDate) {
-          console.log(`Checking budget for ${budget.expense_categories?.name || 'All Categories'}:`);
-          console.log(`Period: ${budget.start_date} to ${budget.end_date}`);
-          console.log(`Budget amount: ${budget.amount}`);
-          
           // Get spending for this period and category
           let spendingQuery = supabase
             .from('expense_transactions')
@@ -79,9 +76,7 @@ export const BudgetAlerts = () => {
           
           if (spendingError) throw spendingError;
 
-          console.log(`Found ${spending?.length || 0} transactions:`, spending);
           const currentSpending = spending?.reduce((sum, exp) => sum + Number(exp.amount), 0) || 0;
-          console.log(`Total spending: ${currentSpending}`);
           const percentage = budget.amount > 0 ? (currentSpending / budget.amount) * 100 : 0;
 
           let status: 'good' | 'warning' | 'exceeded' = 'good';
@@ -97,7 +92,8 @@ export const BudgetAlerts = () => {
             currentSpending,
             percentage,
             status,
-            endDate: budget.end_date
+            endDate: budget.end_date,
+            startDate: budget.start_date
           });
         }
       }
@@ -232,7 +228,7 @@ export const BudgetAlerts = () => {
                     className={`h-2 ${getProgressBarColor(alert.status)}`}
                   />
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Ends: {format(new Date(alert.endDate), 'dd/MM/yyyy')}
+                    Period: {format(new Date(alert.startDate), 'dd/MM/yyyy')} - {format(new Date(alert.endDate), 'dd/MM/yyyy')}
                   </p>
                 </AlertDescription>
               </div>
