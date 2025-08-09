@@ -95,12 +95,12 @@ export const SettingsOverview = () => {
         return new Date(today.setDate(diff)).toISOString().split('T')[0];
       
       case 'yearly':
-        // End on December 31st of current year
-        return new Date(today.getFullYear(), 11, 31).toISOString().split('T')[0];
+        // End on January 1st of next year
+        return new Date(today.getFullYear() + 1, 0, 1).toISOString().split('T')[0];
       
       default: // monthly
-        // End on last day of current month
-        return new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+        // End on 1st of next month
+        return new Date(today.getFullYear(), today.getMonth() + 1, 1).toISOString().split('T')[0];
     }
   };
 
