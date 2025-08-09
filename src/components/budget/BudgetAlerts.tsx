@@ -63,21 +63,21 @@ const SortableAlertCard = ({ alert }: SortableAlertCardProps) => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'safe': return 'bg-green-100 border-green-200 text-green-800';
-      case 'warning': return 'bg-yellow-100 border-yellow-200 text-yellow-800';
-      case 'danger': return 'bg-orange-100 border-orange-200 text-orange-800';
-      case 'exceeded': return 'bg-red-100 border-red-200 text-red-800';
-      default: return 'bg-gray-100 border-gray-200 text-gray-800';
+      case 'safe': return 'text-green-600';
+      case 'warning': return 'text-yellow-600';
+      case 'danger': return 'text-orange-600';
+      case 'exceeded': return 'text-red-600';
+      default: return 'text-gray-600';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'safe': return <CheckCircle className="h-4 w-4" />;
-      case 'warning': return <Clock className="h-4 w-4" />;
-      case 'danger': return <AlertTriangle className="h-4 w-4" />;
-      case 'exceeded': return <AlertTriangle className="h-4 w-4" />;
-      default: return <Target className="h-4 w-4" />;
+      case 'safe': return <CheckCircle className={`h-4 w-4 ${getStatusColor(status)}`} />;
+      case 'warning': return <Clock className={`h-4 w-4 ${getStatusColor(status)}`} />;
+      case 'danger': return <AlertTriangle className={`h-4 w-4 ${getStatusColor(status)}`} />;
+      case 'exceeded': return <AlertTriangle className={`h-4 w-4 ${getStatusColor(status)}`} />;
+      default: return <Target className={`h-4 w-4 ${getStatusColor(status)}`} />;
     }
   };
 
@@ -96,7 +96,7 @@ const SortableAlertCard = ({ alert }: SortableAlertCardProps) => {
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className={`transition-all duration-200 hover:shadow-md ${getStatusColor(alert.status)}`}
+      className="transition-all duration-200 hover:shadow-md"
     >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
@@ -114,7 +114,7 @@ const SortableAlertCard = ({ alert }: SortableAlertCardProps) => {
           </CardTitle>
           <div className="flex items-center gap-2">
             {getStatusIcon(alert.status)}
-            <Badge className={getStatusColor(alert.status)}>
+            <Badge variant="outline" className={getStatusColor(alert.status)}>
               {getStatusText(alert.status)}
             </Badge>
           </div>
