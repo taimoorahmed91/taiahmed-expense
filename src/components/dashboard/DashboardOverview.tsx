@@ -64,12 +64,15 @@ export const DashboardOverview = () => {
 
       if (totalError) throw totalError;
 
-      // Get monthly budget
+      // Get monthly budget for current period
+      const currentDate = new Date().toISOString().split('T')[0];
       const { data: budgetData, error: budgetError } = await supabase
         .from('expense_budgets')
         .select('amount')
         .eq('user_id', user?.id)
         .eq('period', 'monthly')
+        .lte('start_date', currentDate)
+        .gte('end_date', currentDate)
         .order('created_at', { ascending: false })
         .limit(1);
 
