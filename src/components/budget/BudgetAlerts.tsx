@@ -1,30 +1,164 @@
 import React, { useState, useEffect } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { AlertTriangle, CheckCircle, XCircle, DollarSign } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Target, GripVertical } from 'lucide-react';
 import { format } from 'date-fns';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
-interface BudgetAlert {
+interface Budget {
   id: string;
-  categoryName: string;
-  categoryColor: string;
+  amount: number;
   period: string;
-  budgetAmount: number;
-  currentSpending: number;
-  percentage: number;
-  status: 'good' | 'warning' | 'exceeded';
-  endDate: string;
-  startDate: string;
+  category_id?: string;
+  start_date: string;
+  end_date: string;
+  categoryName?: string;
 }
+
+interface BudgetAlert extends Budget {
+  spent: number;
+  percentage: number;
+  status: 'safe' | 'warning' | 'danger' | 'exceeded';
+  daysLeft: number;
+}
+
+interface SortableAlertCardProps {
+  alert: BudgetAlert;
+}
+
+const SortableAlertCard = ({ alert }: SortableAlertCardProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: alert.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'safe': return 'bg-green-100 border-green-200 text-green-800';
+      case 'warning': return 'bg-yellow-100 border-yellow-200 text-yellow-800';
+      case 'danger': return 'bg-orange-100 border-orange-200 text-orange-800';
+      case 'exceeded': return 'bg-red-100 border-red-200 text-red-800';
+      default: return 'bg-gray-100 border-gray-200 text-gray-800';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'safe': return <CheckCircle className="h-4 w-4" />;
+      case 'warning': return <Clock className="h-4 w-4" />;
+      case 'danger': return <AlertTriangle className="h-4 w-4" />;
+      case 'exceeded': return <AlertTriangle className="h-4 w-4" />;
+      default: return <Target className="h-4 w-4" />;
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'safe': return 'On Track';
+      case 'warning': return 'Watch Out';
+      case 'danger': return 'Over Budget';
+      case 'exceeded': return 'Exceeded';
+      default: return 'Unknown';
+    }
+  };
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className={`transition-all duration-200 hover:shadow-md ${getStatusColor(alert.status)}`}
+    >
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <div
+              {...listeners}
+              className="cursor-grab hover:cursor-grabbing p-1 hover:bg-black/10 rounded"
+            >
+              <GripVertical className="h-4 w-4" />
+            </div>
+            {alert.categoryName || 'Overall Budget'}
+            <Badge variant="outline" className="text-xs">
+              {alert.period}
+            </Badge>
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            {getStatusIcon(alert.status)}
+            <Badge className={getStatusColor(alert.status)}>
+              {getStatusText(alert.status)}
+            </Badge>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0 space-y-3">
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>Spent: {alert.spent.toFixed(2)} zł</span>
+            <span>Budget: {alert.amount.toFixed(2)} zł</span>
+          </div>
+          <Progress 
+            value={Math.min(alert.percentage, 100)} 
+            className={`h-2 ${alert.percentage > 100 ? 'bg-red-200' : ''}`}
+          />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{alert.percentage.toFixed(1)}% used</span>
+            <span>{alert.daysLeft} days left</span>
+          </div>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Period: {format(new Date(alert.start_date), 'dd/MM/yyyy')} - {format(new Date(alert.end_date), 'dd/MM/yyyy')}
+        </div>
+        {alert.percentage > 100 && (
+          <div className="text-xs text-red-600 font-medium">
+            Over budget by {(alert.spent - alert.amount).toFixed(2)} zł
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 export const BudgetAlerts = () => {
   const { user } = useAuth();
   const [alerts, setAlerts] = useState<BudgetAlert[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     if (user) {
@@ -32,79 +166,112 @@ export const BudgetAlerts = () => {
     }
   }, [user]);
 
+  const calculateDaysLeft = (endDate: string): number => {
+    const end = new Date(endDate);
+    const today = new Date();
+    const diffTime = end.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const getAlertStatus = (percentage: number, daysLeft: number): BudgetAlert['status'] => {
+    if (percentage >= 100) return 'exceeded';
+    if (percentage >= 80) return 'danger';
+    if (percentage >= 60) return 'warning';
+    return 'safe';
+  };
+
   const fetchBudgetAlerts = async () => {
     try {
-      // Get all budgets for user
+      console.log('Fetching budget alerts for user:', user?.id);
+      
+      const currentDate = new Date().toISOString().split('T')[0];
+      
+      // Fetch active budgets
       const { data: budgets, error: budgetError } = await supabase
         .from('expense_budgets')
         .select(`
-          id,
-          amount,
-          period,
-          start_date,
-          end_date,
-          category_id,
-          expense_categories(name, color)
+          *,
+          expense_categories (
+            name
+          )
         `)
-        .eq('user_id', user?.id);
+        .eq('user_id', user?.id)
+        .lte('start_date', currentDate)
+        .gte('end_date', currentDate);
 
-      if (budgetError) throw budgetError;
-
-      const currentDate = new Date();
-      const budgetAlerts: BudgetAlert[] = [];
-
-      for (const budget of budgets || []) {
-        // Check if budget is currently active
-        const startDate = new Date(budget.start_date);
-        const endDate = new Date(budget.end_date);
-        
-        if (currentDate >= startDate && currentDate <= endDate) {
-          // Get spending for this period and category
-          let spendingQuery = supabase
-            .from('expense_transactions')
-            .select('amount, transaction_date')
-            .eq('user_id', user?.id)
-            .gte('transaction_date', budget.start_date)
-            .lte('transaction_date', budget.end_date);
-
-          // Filter by category if it's not "all categories"
-          if (budget.category_id) {
-            spendingQuery = spendingQuery.eq('category_id', budget.category_id);
-          }
-
-          const { data: spending, error: spendingError } = await spendingQuery;
-          
-          if (spendingError) throw spendingError;
-
-          const currentSpending = spending?.reduce((sum, exp) => sum + Number(exp.amount), 0) || 0;
-          const percentage = budget.amount > 0 ? (currentSpending / budget.amount) * 100 : 0;
-
-          let status: 'good' | 'warning' | 'exceeded' = 'good';
-          if (percentage >= 100) status = 'exceeded';
-          else if (percentage >= 80) status = 'warning';
-
-          budgetAlerts.push({
-            id: budget.id,
-            categoryName: budget.expense_categories?.name || 'All Categories',
-            categoryColor: budget.expense_categories?.color || '#6B7280',
-            period: budget.period,
-            budgetAmount: budget.amount,
-            currentSpending,
-            percentage,
-            status,
-            endDate: budget.end_date,
-            startDate: budget.start_date
-          });
-        }
+      if (budgetError) {
+        console.error('Budget fetch error:', budgetError);
+        throw budgetError;
       }
 
-      // Sort by status priority (exceeded first, then warning, then good)
-      budgetAlerts.sort((a, b) => {
-        const statusOrder = { exceeded: 0, warning: 1, good: 2 };
+      console.log('Fetched budgets:', budgets);
+
+      if (!budgets || budgets.length === 0) {
+        console.log('No active budgets found');
+        setAlerts([]);
+        setLoading(false);
+        return;
+      }
+
+      // Calculate spending for each budget
+      const alertsPromises = budgets.map(async (budget) => {
+        console.log('Processing budget:', budget);
+        
+        let query = supabase
+          .from('expense_transactions')
+          .select('amount')
+          .eq('user_id', user?.id)
+          .gte('transaction_date', budget.start_date)
+          .lte('transaction_date', budget.end_date);
+
+        // If budget is category-specific, filter by category
+        if (budget.category_id) {
+          query = query.eq('category_id', budget.category_id);
+        }
+
+        const { data: transactions, error: transactionError } = await query;
+
+        if (transactionError) {
+          console.error('Transaction fetch error for budget:', budget.id, transactionError);
+          throw transactionError;
+        }
+
+        console.log('Transactions for budget', budget.id, ':', transactions);
+
+        const spent = transactions?.reduce((sum, transaction) => sum + Number(transaction.amount), 0) || 0;
+        const percentage = budget.amount > 0 ? (spent / budget.amount) * 100 : 0;
+        const daysLeft = calculateDaysLeft(budget.end_date);
+        const status = getAlertStatus(percentage, daysLeft);
+
+        console.log('Budget calculation:', {
+          budgetId: budget.id,
+          spent,
+          amount: budget.amount,
+          percentage,
+          daysLeft,
+          status
+        });
+
+        return {
+          ...budget,
+          categoryName: budget.expense_categories?.name,
+          spent,
+          percentage,
+          status,
+          daysLeft
+        } as BudgetAlert;
+      });
+
+      const calculatedAlerts = await Promise.all(alertsPromises);
+      console.log('All calculated alerts:', calculatedAlerts);
+      
+      // Sort by status priority (exceeded > danger > warning > safe)
+      const sortedAlerts = calculatedAlerts.sort((a, b) => {
+        const statusOrder = { 'exceeded': 0, 'danger': 1, 'warning': 2, 'safe': 3 };
         return statusOrder[a.status] - statusOrder[b.status];
       });
 
-      setAlerts(budgetAlerts);
+      setAlerts(sortedAlerts);
     } catch (error) {
       console.error('Error fetching budget alerts:', error);
     } finally {
@@ -112,36 +279,16 @@ export const BudgetAlerts = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'exceeded':
-        return <XCircle className="h-4 w-4 text-destructive" />;
-      case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-warning" />;
-      default:
-        return <CheckCircle className="h-4 w-4 text-success" />;
-    }
-  };
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'exceeded':
-        return 'Budget Exceeded';
-      case 'warning':
-        return 'Budget Warning';
-      default:
-        return 'On Track';
-    }
-  };
+    if (active.id !== over?.id) {
+      setAlerts((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over?.id);
 
-  const getProgressBarColor = (status: string) => {
-    switch (status) {
-      case 'exceeded':
-        return 'bg-destructive';
-      case 'warning':
-        return 'bg-warning';
-      default:
-        return 'bg-primary';
+        return arrayMove(items, oldIndex, newIndex);
+      });
     }
   };
 
@@ -149,15 +296,12 @@ export const BudgetAlerts = () => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            Budget Alerts
-          </CardTitle>
+          <CardTitle>Budget Alerts</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-16 bg-muted rounded animate-pulse" />
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-24 bg-muted rounded animate-pulse"></div>
             ))}
           </div>
         </CardContent>
@@ -170,14 +314,16 @@ export const BudgetAlerts = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+            <Target className="h-5 w-5" />
             Budget Alerts
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground text-center py-4">
-            No active budgets found. Set up budgets in Settings to track your spending.
-          </p>
+          <div className="text-center py-8">
+            <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">No active budgets found</p>
+            <p className="text-sm text-muted-foreground">Create a budget in Settings to start tracking your spending</p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -187,54 +333,28 @@ export const BudgetAlerts = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <DollarSign className="h-5 w-5" />
+          <Target className="h-5 w-5" />
           Budget Alerts
+          <Badge variant="outline">{alerts.length}</Badge>
         </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Drag and drop to reorder alerts by priority
+        </p>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {alerts.map((alert) => (
-          <Alert 
-            key={alert.id} 
-            className={`border-l-4 ${
-              alert.status === 'exceeded' 
-                ? 'border-l-destructive bg-destructive/5' 
-                : alert.status === 'warning'
-                ? 'border-l-warning bg-warning/5'
-                : 'border-l-success bg-success/5'
-            }`}
-          >
-            <div className="flex items-start justify-between w-full">
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(alert.status)}
-                  <AlertTitle className="text-sm">
-                    {alert.categoryName} - {getStatusText(alert.status)}
-                  </AlertTitle>
-                  <Badge variant="outline" className="text-xs">
-                    {alert.period}
-                  </Badge>
-                </div>
-                <AlertDescription className="text-xs">
-                  <div className="flex justify-between items-center mb-2">
-                    <span>
-                      {alert.currentSpending.toFixed(2)} zł of {alert.budgetAmount.toFixed(2)} zł
-                    </span>
-                    <span className="font-semibold">
-                      {alert.percentage.toFixed(1)}%
-                    </span>
-                  </div>
-                  <Progress 
-                    value={Math.min(alert.percentage, 100)} 
-                    className={`h-2 ${getProgressBarColor(alert.status)}`}
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Period: {format(new Date(alert.startDate), 'dd/MM/yyyy')} - {format(new Date(alert.endDate), 'dd/MM/yyyy')}
-                  </p>
-                </AlertDescription>
-              </div>
+      <CardContent>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={alerts.map(alert => alert.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-4">
+              {alerts.map((alert) => (
+                <SortableAlertCard key={alert.id} alert={alert} />
+              ))}
             </div>
-          </Alert>
-        ))}
+          </SortableContext>
+        </DndContext>
       </CardContent>
     </Card>
   );

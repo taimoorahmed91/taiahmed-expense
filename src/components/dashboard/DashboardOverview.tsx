@@ -184,35 +184,6 @@ export const DashboardOverview = () => {
         </Card>
       </div>
 
-      {stats.monthlyBudget > 0 && (
-        <Card className="border-2 border-warning/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Monthly Budget Progress
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">
-                {stats.monthlyTotal.toFixed(2)} zł of {stats.monthlyBudget.toFixed(2)} zł
-              </span>
-              <span className={`text-sm font-semibold ${budgetProgress > 80 ? 'text-destructive' : 'text-primary'}`}>
-                {budgetProgress.toFixed(1)}%
-              </span>
-            </div>
-            <Progress 
-              value={Math.min(budgetProgress, 100)} 
-              className={`h-3 ${budgetProgress > 100 ? 'bg-destructive/20' : ''}`}
-            />
-            {budgetProgress > 80 && (
-              <p className={`text-sm ${budgetProgress > 100 ? 'text-destructive' : 'text-warning-foreground'}`}>
-                {budgetProgress > 100 ? 'Budget exceeded!' : 'Approaching budget limit'}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       <BudgetAlerts />
       
