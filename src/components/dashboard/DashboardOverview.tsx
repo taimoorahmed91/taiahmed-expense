@@ -18,6 +18,7 @@ import {
 interface DashboardStats {
   totalExpenses: number;
   monthlyTotal: number;
+  monthlyNonRental: number;
   transactionCount: number;
   averageExpense: number;
   topCategory: string;
@@ -29,6 +30,7 @@ export const DashboardOverview = () => {
   const [stats, setStats] = useState<DashboardStats>({
     totalExpenses: 0,
     monthlyTotal: 0,
+    monthlyNonRental: 0,
     transactionCount: 0,
     averageExpense: 0,
     topCategory: 'No expenses yet',
@@ -80,6 +82,13 @@ export const DashboardOverview = () => {
 
       // Calculate stats
       const monthlyTotal = monthlyExpenses?.reduce((sum, exp) => sum + Number(exp.amount), 0) || 0;
+      const monthlyNonRental = monthlyExpenses?.reduce((sum, exp) => {
+        const categoryName = exp.expense_categories?.name?.toLowerCase() || '';
+        if (categoryName.includes('rental') || categoryName.includes('rent') || categoryName.includes('utilities') || categoryName.includes('utility')) {
+          return sum;
+        }
+        return sum + Number(exp.amount);
+      }, 0) || 0;
       const totalAmount = totalExpenses?.reduce((sum, exp) => sum + Number(exp.amount), 0) || 0;
       const transactionCount = monthlyExpenses?.length || 0;
       const averageExpense = transactionCount > 0 ? monthlyTotal / transactionCount : 0;
@@ -100,6 +109,7 @@ export const DashboardOverview = () => {
       setStats({
         totalExpenses: totalAmount,
         monthlyTotal,
+        monthlyNonRental,
         transactionCount,
         averageExpense,
         topCategory,
@@ -130,7 +140,7 @@ export const DashboardOverview = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
         <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">This Month</CardTitle>
@@ -153,6 +163,19 @@ export const DashboardOverview = () => {
             <div className="text-2xl font-bold">{stats.totalExpenses.toFixed(2)} zł</div>
             <p className="text-xs text-muted-foreground">
               All time total
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 border-green-500/20 bg-gradient-to-br from-green-500/5 to-green-500/10">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Non Rental Expenses</CardTitle>
+            <Calendar className="h-5 w-5 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.monthlyNonRental.toFixed(2)} zł</div>
+            <p className="text-xs text-muted-foreground">
+              This month excluding rental & utilities
             </p>
           </CardContent>
         </Card>
