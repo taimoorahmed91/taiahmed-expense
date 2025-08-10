@@ -372,6 +372,46 @@ export const SettingsOverview = () => {
     });
   };
 
+  const addCategory = async () => {
+    if (!newCategory.name) {
+      toast({
+        title: "Error",
+        description: "Please enter a category name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('expense_categories')
+        .insert({
+          name: newCategory.name,
+          color: newCategory.color,
+          icon: newCategory.icon,
+          priority: categories.length + 1
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setCategories([...categories, data].sort((a, b) => a.priority - b.priority));
+      setNewCategory({ name: '', color: '#3B82F6', icon: 'DollarSign' });
+
+      toast({
+        title: "Category added",
+        description: "New category has been created successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add category. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -574,86 +614,126 @@ export const SettingsOverview = () => {
         </TabsContent>
 
         <TabsContent value="categories">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Tag className="h-5 w-5" />
-                Expense Categories
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {categories.map(category => {
-                  const isEditing = editingCategories[category.id];
-                  
-                  return (
-                    <div key={category.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                      <div 
-                        className="w-4 h-4 rounded-sm flex-shrink-0" 
-                        style={{ backgroundColor: category.color }}
-                      />
-                      
-                      {isEditing ? (
-                        <>
-                          <div className="flex-1 space-y-2">
-                            <Input
-                              value={isEditing.name}
-                              onChange={(e) => updateEditingCategory(category.id, 'name', e.target.value)}
-                              placeholder="Category name"
-                            />
-                            <div className="flex items-center gap-2">
-                              <Label className="text-sm">Priority:</Label>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="h-5 w-5" />
+                  Add New Category
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="categoryName">Category Name</Label>
+                    <Input
+                      id="categoryName"
+                      value={newCategory.name}
+                      onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                      placeholder="Enter category name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="categoryColor">Color</Label>
+                    <Input
+                      id="categoryColor"
+                      type="color"
+                      value={newCategory.color}
+                      onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
+                      className="h-10 w-full"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>&nbsp;</Label>
+                    <Button onClick={addCategory} className="w-full">
+                      Add Category
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Tag className="h-5 w-5" />
+                  Expense Categories
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {categories.map(category => {
+                    const isEditing = editingCategories[category.id];
+                    
+                    return (
+                      <div key={category.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                        <div 
+                          className="w-4 h-4 rounded-sm flex-shrink-0" 
+                          style={{ backgroundColor: category.color }}
+                        />
+                        
+                        {isEditing ? (
+                          <>
+                            <div className="flex-1 space-y-2">
                               <Input
-                                type="number"
-                                value={isEditing.priority}
-                                onChange={(e) => updateEditingCategory(category.id, 'priority', parseInt(e.target.value) || 0)}
-                                className="w-20"
-                                min="0"
+                                value={isEditing.name}
+                                onChange={(e) => updateEditingCategory(category.id, 'name', e.target.value)}
+                                placeholder="Category name"
                               />
+                              <div className="flex items-center gap-2">
+                                <Label className="text-sm">Priority:</Label>
+                                <Input
+                                  type="number"
+                                  value={isEditing.priority}
+                                  onChange={(e) => updateEditingCategory(category.id, 'priority', parseInt(e.target.value) || 0)}
+                                  className="w-20"
+                                  min="0"
+                                />
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => saveCategory(category.id)}
-                            >
-                              <Save className="h-4 w-4" />
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => saveCategory(category.id)}
+                              >
+                                <Save className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => cancelEditingCategory(category.id)}
+                              >
+                                ✕
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{category.name}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  Priority: {category.priority}
+                                </Badge>
+                              </div>
+                            </div>
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              onClick={() => cancelEditingCategory(category.id)}
+                              onClick={() => startEditingCategory(category)}
                             >
-                              ✕
+                              <Edit className="h-4 w-4" />
                             </Button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{category.name}</span>
-                              <Badge variant="outline" className="text-xs">
-                                Priority: {category.priority}
-                              </Badge>
-                            </div>
-                          </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => startEditingCategory(category)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
       </Tabs>
