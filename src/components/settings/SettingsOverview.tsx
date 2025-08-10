@@ -57,6 +57,7 @@ export const SettingsOverview = () => {
 
   const [newBudget, setNewBudget] = useState({ amount: '', period: 'monthly', category_id: '' });
   const [newCategory, setNewCategory] = useState({ name: '', color: '#3B82F6', icon: 'DollarSign' });
+  const [editingCategories, setEditingCategories] = useState<{[key: string]: {name: string, priority: number}}>({});
 
   useEffect(() => {
     if (user) {
@@ -307,6 +308,69 @@ export const SettingsOverview = () => {
     }
   };
 
+  const startEditingCategory = (category: Category) => {
+    setEditingCategories({
+      ...editingCategories,
+      [category.id]: {
+        name: category.name,
+        priority: category.priority
+      }
+    });
+  };
+
+  const cancelEditingCategory = (categoryId: string) => {
+    const newEditing = { ...editingCategories };
+    delete newEditing[categoryId];
+    setEditingCategories(newEditing);
+  };
+
+  const saveCategory = async (categoryId: string) => {
+    const editData = editingCategories[categoryId];
+    if (!editData) return;
+
+    try {
+      const { error } = await supabase
+        .from('expense_categories')
+        .update({
+          name: editData.name,
+          priority: editData.priority
+        })
+        .eq('id', categoryId);
+
+      if (error) throw error;
+
+      // Update local state
+      setCategories(categories.map(cat => 
+        cat.id === categoryId 
+          ? { ...cat, name: editData.name, priority: editData.priority }
+          : cat
+      ).sort((a, b) => a.priority - b.priority));
+
+      // Remove from editing state
+      cancelEditingCategory(categoryId);
+
+      toast({
+        title: "Category updated",
+        description: "Category has been successfully updated.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update category. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateEditingCategory = (categoryId: string, field: 'name' | 'priority', value: string | number) => {
+    setEditingCategories({
+      ...editingCategories,
+      [categoryId]: {
+        ...editingCategories[categoryId],
+        [field]: value
+      }
+    });
+  };
 
   if (loading) {
     return (
@@ -518,21 +582,75 @@ export const SettingsOverview = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {categories.map(category => (
-                  <div key={category.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
+              <div className="space-y-4">
+                {categories.map(category => {
+                  const isEditing = editingCategories[category.id];
+                  
+                  return (
+                    <div key={category.id} className="flex items-center gap-4 p-4 border rounded-lg">
                       <div 
-                        className="w-4 h-4 rounded-sm" 
+                        className="w-4 h-4 rounded-sm flex-shrink-0" 
                         style={{ backgroundColor: category.color }}
                       />
-                      <span className="font-medium">{category.name}</span>
+                      
+                      {isEditing ? (
+                        <>
+                          <div className="flex-1 space-y-2">
+                            <Input
+                              value={isEditing.name}
+                              onChange={(e) => updateEditingCategory(category.id, 'name', e.target.value)}
+                              placeholder="Category name"
+                            />
+                            <div className="flex items-center gap-2">
+                              <Label className="text-sm">Priority:</Label>
+                              <Input
+                                type="number"
+                                value={isEditing.priority}
+                                onChange={(e) => updateEditingCategory(category.id, 'priority', parseInt(e.target.value) || 0)}
+                                className="w-20"
+                                min="0"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => saveCategory(category.id)}
+                            >
+                              <Save className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => cancelEditingCategory(category.id)}
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{category.name}</span>
+                              <Badge variant="outline" className="text-xs">
+                                Priority: {category.priority}
+                              </Badge>
+                            </div>
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => startEditingCategory(category)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
                     </div>
-                    <Button variant="ghost" size="sm">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
