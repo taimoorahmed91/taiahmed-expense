@@ -6,13 +6,31 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { ExpenseTrendsChart } from './ExpenseTrendsChart';
 import { ExpenseDistributionChart } from './ExpenseDistributionChart';
 import { BudgetAlerts } from '@/components/budget/BudgetAlerts';
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { 
   TrendingUp, 
   TrendingDown, 
   DollarSign, 
   ShoppingCart,
   Calendar,
-  Target
+  Target,
+  GripVertical
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -23,6 +41,16 @@ interface DashboardStats {
   averageExpense: number;
   topCategory: string;
   monthlyBudget: number;
+}
+
+interface DashboardCard {
+  id: string;
+  title: string;
+  value: string;
+  subtitle: string;
+  icon: React.ComponentType<any>;
+  className: string;
+  iconColor: string;
 }
 
 export const DashboardOverview = () => {
@@ -37,6 +65,16 @@ export const DashboardOverview = () => {
     monthlyBudget: 0
   });
   const [loading, setLoading] = useState(true);
+  const [cardOrder, setCardOrder] = useState(['monthly', 'total', 'nonRental', 'average', 'topCategory']);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   useEffect(() => {
     if (user) {
@@ -138,75 +176,105 @@ export const DashboardOverview = () => {
 
   const budgetProgress = stats.monthlyBudget > 0 ? (stats.monthlyTotal / stats.monthlyBudget) * 100 : 0;
 
+  const dashboardCards: DashboardCard[] = [
+    {
+      id: 'monthly',
+      title: 'This Month',
+      value: `${stats.monthlyTotal.toFixed(2)} zł`,
+      subtitle: `${stats.transactionCount} transactions`,
+      icon: DollarSign,
+      className: 'border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10',
+      iconColor: 'text-primary'
+    },
+    {
+      id: 'total',
+      title: 'Total Expenses',
+      value: `${stats.totalExpenses.toFixed(2)} zł`,
+      subtitle: 'All time total',
+      icon: TrendingUp,
+      className: 'border-2 border-secondary/20 bg-gradient-to-br from-secondary/5 to-secondary/10',
+      iconColor: 'text-secondary-foreground'
+    },
+    {
+      id: 'nonRental',
+      title: 'Non Rental Expenses',
+      value: `${stats.monthlyNonRental.toFixed(2)} zł`,
+      subtitle: 'This month excluding rental & utilities',
+      icon: Calendar,
+      className: 'border-2 border-green-500/20 bg-gradient-to-br from-green-500/5 to-green-500/10',
+      iconColor: 'text-green-600'
+    },
+    {
+      id: 'average',
+      title: 'Average Expense',
+      value: `${stats.averageExpense.toFixed(2)} zł`,
+      subtitle: 'Per transaction',
+      icon: ShoppingCart,
+      className: 'border-2 border-accent/20 bg-gradient-to-br from-accent/5 to-accent/10',
+      iconColor: 'text-accent-foreground'
+    },
+    {
+      id: 'topCategory',
+      title: 'Top Category',
+      value: stats.topCategory,
+      subtitle: 'Most spent category',
+      icon: Target,
+      className: 'border-2 border-muted/20 bg-gradient-to-br from-muted/5 to-muted/10',
+      iconColor: 'text-muted-foreground'
+    }
+  ];
+
+  const handleDragStart = (event: any) => {
+    setActiveId(event.active.id);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      setCardOrder((items) => {
+        const oldIndex = items.indexOf(active.id as string);
+        const newIndex = items.indexOf(over.id as string);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+    
+    setActiveId(null);
+  };
+
+  const orderedCards = cardOrder.map(id => dashboardCards.find(card => card.id === id)!).filter(Boolean);
+
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">This Month</CardTitle>
-            <DollarSign className="h-5 w-5 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.monthlyTotal.toFixed(2)} zł</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.transactionCount} transactions
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-secondary/20 bg-gradient-to-br from-secondary/5 to-secondary/10">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
-            <TrendingUp className="h-5 w-5 text-secondary-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalExpenses.toFixed(2)} zł</div>
-            <p className="text-xs text-muted-foreground">
-              All time total
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-green-500/20 bg-gradient-to-br from-green-500/5 to-green-500/10">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Non Rental Expenses</CardTitle>
-            <Calendar className="h-5 w-5 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.monthlyNonRental.toFixed(2)} zł</div>
-            <p className="text-xs text-muted-foreground">
-              This month excluding rental & utilities
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-accent/20 bg-gradient-to-br from-accent/5 to-accent/10">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Average Expense</CardTitle>
-            <ShoppingCart className="h-5 w-5 text-accent-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.averageExpense.toFixed(2)} zł</div>
-            <p className="text-xs text-muted-foreground">
-              Per transaction
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-muted/20 bg-gradient-to-br from-muted/5 to-muted/10">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Top Category</CardTitle>
-            <Target className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold truncate">{stats.topCategory}</div>
-            <p className="text-xs text-muted-foreground">
-              Most spent category
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={cardOrder} strategy={rectSortingStrategy}>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+            {orderedCards.map((card) => (
+              <SortableCard key={card.id} card={card} />
+            ))}
+          </div>
+        </SortableContext>
+        
+        <DragOverlay>
+          {activeId ? (
+            <Card className={dashboardCards.find(c => c.id === activeId)?.className}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {dashboardCards.find(c => c.id === activeId)?.title}
+                </CardTitle>
+                <GripVertical className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold opacity-50">Dragging...</div>
+              </CardContent>
+            </Card>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       <BudgetAlerts />
       
@@ -216,3 +284,44 @@ export const DashboardOverview = () => {
     </div>
   );
 };
+
+function SortableCard({ card }: { card: DashboardCard }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: card.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const IconComponent = card.icon;
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <Card className={`${card.className} cursor-grab active:cursor-grabbing transition-all hover:shadow-lg`}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">{card.title}</CardTitle>
+          <div className="flex items-center gap-2">
+            <IconComponent className={`h-5 w-5 ${card.iconColor}`} />
+            <div {...listeners} className="p-1 hover:bg-muted/50 rounded cursor-grab active:cursor-grabbing">
+              <GripVertical className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{card.value}</div>
+          <p className="text-xs text-muted-foreground">
+            {card.subtitle}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
