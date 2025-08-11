@@ -32,10 +32,9 @@ const Index = () => {
     return <LoginPage />;
   }
 
-  // If user is logged in but not admin, show access denied
-  if (!isAdmin) {
-    return <AccessDenied />;
-  }
+  // Only block access if user is not admin AND trying to access admin features
+  // For now, we'll allow all authenticated users to access expense features
+  // Admin-specific features should be handled in individual components
 
   const renderTabContent = () => {
     switch (activeTab) {
