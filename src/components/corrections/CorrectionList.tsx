@@ -3,6 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import { 
   Dialog, 
   DialogContent, 
   DialogHeader, 
@@ -63,12 +72,15 @@ export const CorrectionList = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [editForm, setEditForm] = useState({
     amount: '',
     description: '',
     category_id: '',
     transaction_date: ''
   });
+
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     if (user) {
@@ -214,6 +226,17 @@ export const CorrectionList = () => {
     expense.expense_categories.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredExpenses.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentExpenses = filteredExpenses.slice(startIndex, endIndex);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   if (loading) {
     return (
       <Card>
@@ -249,8 +272,13 @@ export const CorrectionList = () => {
       {/* Expenses List */}
       <Card className="border-2 border-muted/50 shadow-lg">
         <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-3 text-xl">
-            All Expenses ({filteredExpenses.length})
+          <CardTitle className="flex items-center justify-between text-xl">
+            <span>All Expenses ({filteredExpenses.length})</span>
+            {totalPages > 1 && (
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -261,7 +289,7 @@ export const CorrectionList = () => {
               <p className="text-sm">Try adjusting your search terms</p>
             </div>
           ) : (
-            filteredExpenses.map((expense) => (
+            currentExpenses.map((expense) => (
               <div key={expense.id} className="flex items-center justify-between p-5 border-2 rounded-xl bg-gradient-to-r from-card to-card/90 hover:shadow-md transition-all duration-200 border-muted/30">
                 <div className="flex items-center gap-3 flex-1">
                   <div 
@@ -402,6 +430,63 @@ export const CorrectionList = () => {
                 </div>
               </div>
             ))
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center pt-6">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  
+                  {[...Array(totalPages)].map((_, index) => {
+                    const page = index + 1;
+                    
+                    // Show first page, last page, current page, and pages around current
+                    if (
+                      page === 1 || 
+                      page === totalPages || 
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(page)}
+                            isActive={currentPage === page}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    }
+                    
+                    // Show ellipsis for gaps
+                    if (page === currentPage - 2 || page === currentPage + 2) {
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      );
+                    }
+                    
+                    return null;
+                  })}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
           )}
         </CardContent>
       </Card>
