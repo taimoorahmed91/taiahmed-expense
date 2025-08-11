@@ -329,6 +329,48 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_transaction_logs: {
+        Row: {
+          action: string
+          category_name: string | null
+          changed_fields: string[] | null
+          created_at: string
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          performed_at: string
+          performed_by: string | null
+          transaction_id: string
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          category_name?: string | null
+          changed_fields?: string[] | null
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          performed_at?: string
+          performed_by?: string | null
+          transaction_id: string
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          category_name?: string | null
+          changed_fields?: string[] | null
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          performed_at?: string
+          performed_by?: string | null
+          transaction_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       expense_transactions: {
         Row: {
           amount: number
