@@ -32,8 +32,10 @@ const Index = () => {
     return <LoginPage />;
   }
 
-  // Admin check is only needed for admin-specific features
-  // All authenticated users can access expense tracking
+  // If user is logged in but not admin, show access denied
+  if (!isAdmin) {
+    return <AccessDenied />;
+  }
 
   const renderTabContent = () => {
     switch (activeTab) {
