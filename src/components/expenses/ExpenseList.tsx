@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { formatDistanceToNow } from 'date-fns';
-import { Receipt, MapPin } from 'lucide-react';
+import { Receipt, MapPin, User, Users } from 'lucide-react';
 
 interface Expense {
   id: string;
@@ -12,9 +13,14 @@ interface Expense {
   description: string;
   transaction_date: string;
   created_at: string;
+  user_id: string;
   category: {
     name: string;
     color: string;
+  };
+  expense_profile?: {
+    full_name: string;
+    email: string;
   };
 }
 
@@ -22,16 +28,17 @@ export const ExpenseList = () => {
   const { user } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'personal' | 'group'>('personal');
 
   useEffect(() => {
     if (user) {
       fetchExpenses();
     }
-  }, [user]);
+  }, [user, viewMode]);
 
   const fetchExpenses = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('expense_transactions')
         .select(`
           id,
@@ -39,20 +46,39 @@ export const ExpenseList = () => {
           description,
           transaction_date,
           created_at,
+          user_id,
           expense_categories (
             name,
             color
           )
         `)
-        .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
         .limit(10);
 
+      // If personal mode, only show user's own expenses
+      if (viewMode === 'personal') {
+        query = query.eq('user_id', user?.id);
+      }
+      // For group mode, the RLS policy will automatically handle showing 
+      // user's own expenses + group member expenses
+
+      const { data: expenseData, error } = await query;
+
       if (error) throw error;
 
-      const formattedExpenses = data?.map(expense => ({
+      // Get user profiles for the expenses
+      const userIds = expenseData?.map(expense => expense.user_id) || [];
+      const { data: profileData } = await supabase
+        .from('expense_profile')
+        .select('user_id, full_name, email')
+        .in('user_id', userIds);
+
+      const profileMap = new Map(profileData?.map(profile => [profile.user_id, profile]) || []);
+
+      const formattedExpenses = expenseData?.map(expense => ({
         ...expense,
-        category: expense.expense_categories as { name: string; color: string }
+        category: expense.expense_categories as { name: string; color: string },
+        expense_profile: profileMap.get(expense.user_id) || undefined
       })) || [];
 
       setExpenses(formattedExpenses);
@@ -76,12 +102,35 @@ export const ExpenseList = () => {
   return (
     <Card className="border-2 border-muted/50 shadow-lg">
       <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-3 text-xl">
-          <div className="p-2 rounded-lg bg-secondary/50">
-            <Receipt className="w-5 h-5 text-secondary-foreground" />
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <div className="p-2 rounded-lg bg-secondary/50">
+              <Receipt className="w-5 h-5 text-secondary-foreground" />
+            </div>
+            Recent Expenses
+          </CardTitle>
+          
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'personal' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('personal')}
+              className="flex items-center gap-2"
+            >
+              <User className="w-4 h-4" />
+              Personal
+            </Button>
+            <Button
+              variant={viewMode === 'group' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('group')}
+              className="flex items-center gap-2"
+            >
+              <Users className="w-4 h-4" />
+              Group
+            </Button>
           </div>
-          Recent Expenses
-        </CardTitle>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {expenses.length === 0 ? (
@@ -104,6 +153,11 @@ export const ExpenseList = () => {
                     <MapPin className="w-4 h-4" />
                     {expense.description}
                   </div>
+                  {viewMode === 'group' && expense.user_id !== user?.id && (
+                    <div className="text-xs text-muted-foreground/80 mt-1">
+                      by {expense.expense_profile?.full_name || expense.expense_profile?.email || 'Unknown'}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="text-right">

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAdmin } from '@/hooks/useAdmin';
-import { AdminUsersList } from '@/components/admin/AdminUsersList';
+import { AdminTabs } from '@/components/admin/AdminTabs';
 import { AccessDenied } from '@/components/admin/AccessDenied';
 
 const AdminUsers = () => {
@@ -18,7 +18,7 @@ const AdminUsers = () => {
     return <AccessDenied />;
   }
 
-  return <AdminUsersList />;
+  return <AdminTabs />;
 };
 
 export default AdminUsers;
