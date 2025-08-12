@@ -53,16 +53,30 @@ export const GroupManagement = () => {
 
   const fetchGroups = async () => {
     try {
-      // For now, show placeholder until database types are updated
-      setGroups([
-        {
-          id: 'placeholder-1',
-          name: 'Sample Group',
-          description: 'Groups will be available after database types update',
-          created_at: new Date().toISOString(),
-          member_count: 0
-        }
-      ]);
+      // Direct query to groups table
+      const { data: groupsData, error: groupsError } = await (supabase as any)
+        .from('groups')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (groupsError) throw groupsError;
+
+      // Get member counts for each group
+      const groupsWithCounts = await Promise.all(
+        (groupsData || []).map(async (group: any) => {
+          const { data: membersData, error: membersError } = await (supabase as any)
+            .from('group_members')
+            .select('id')
+            .eq('group_id', group.id);
+
+          return {
+            ...group,
+            member_count: membersData?.length || 0
+          };
+        })
+      );
+
+      setGroups(groupsWithCounts);
     } catch (error) {
       console.error('Error fetching groups:', error);
       toast({
@@ -92,10 +106,31 @@ export const GroupManagement = () => {
 
   const fetchGroupMembers = async (groupId: string) => {
     try {
-      // For now, just set empty array until types are updated
-      setGroupMembers([]);
+      // Use raw query for group members
+      const { data, error } = await (supabase as any)
+        .from('group_members')
+        .select(`
+          id,
+          user_id,
+          joined_at,
+          expense_profile!inner(full_name, email)
+        `)
+        .eq('group_id', groupId);
+
+      if (error) throw error;
+
+      const members = data?.map((member: any) => ({
+        id: member.id,
+        user_id: member.user_id,
+        full_name: member.expense_profile?.full_name || 'Unknown',
+        email: member.expense_profile?.email || '',
+        joined_at: member.joined_at
+      })) || [];
+
+      setGroupMembers(members);
     } catch (error) {
       console.error('Error fetching group members:', error);
+      setGroupMembers([]);
     }
   };
 
@@ -103,15 +138,27 @@ export const GroupManagement = () => {
     if (!newGroupName.trim()) return;
 
     try {
-      // For now, show success message until types are updated
+      const { data: user } = await supabase.auth.getUser();
+      
+      const { error } = await (supabase as any)
+        .from('groups')
+        .insert({
+          name: newGroupName,
+          description: newGroupDescription,
+          created_by: user.user?.id
+        });
+
+      if (error) throw error;
+
       toast({
         title: "Success",
-        description: "Group feature will be available after database types are updated",
+        description: "Group created successfully",
       });
 
       setNewGroupName('');
       setNewGroupDescription('');
       setCreateGroupOpen(false);
+      fetchGroups();
     } catch (error) {
       console.error('Error creating group:', error);
       toast({
@@ -126,13 +173,27 @@ export const GroupManagement = () => {
     if (!selectedGroup || !selectedUserId) return;
 
     try {
+      const { data: user } = await supabase.auth.getUser();
+      
+      const { error } = await (supabase as any)
+        .from('group_members')
+        .insert({
+          group_id: selectedGroup.id,
+          user_id: selectedUserId,
+          added_by: user.user?.id
+        });
+
+      if (error) throw error;
+
       toast({
         title: "Success",
-        description: "Group member management will be available after database types are updated",
+        description: "User added to group successfully",
       });
 
       setSelectedUserId('');
       setAddMemberOpen(false);
+      fetchGroupMembers(selectedGroup.id);
+      fetchGroups();
     } catch (error) {
       console.error('Error adding member:', error);
       toast({
@@ -145,10 +206,22 @@ export const GroupManagement = () => {
 
   const removeMemberFromGroup = async (memberId: string) => {
     try {
+      const { error } = await (supabase as any)
+        .from('group_members')
+        .delete()
+        .eq('id', memberId);
+
+      if (error) throw error;
+
       toast({
         title: "Success",
-        description: "Group member removal will be available after database types are updated",
+        description: "User removed from group",
       });
+
+      if (selectedGroup) {
+        fetchGroupMembers(selectedGroup.id);
+        fetchGroups();
+      }
     } catch (error) {
       console.error('Error removing member:', error);
       toast({
@@ -161,13 +234,21 @@ export const GroupManagement = () => {
 
   const deleteGroup = async (groupId: string) => {
     try {
+      const { error } = await (supabase as any)
+        .from('groups')
+        .delete()
+        .eq('id', groupId);
+
+      if (error) throw error;
+
       toast({
         title: "Success",
-        description: "Group deletion will be available after database types are updated",
+        description: "Group deleted successfully",
       });
 
       setSelectedGroup(null);
       setGroupMembers([]);
+      fetchGroups();
     } catch (error) {
       console.error('Error deleting group:', error);
       toast({
