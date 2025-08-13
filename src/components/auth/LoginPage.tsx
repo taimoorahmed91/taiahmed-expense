@@ -1,11 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Chrome, TrendingUp } from 'lucide-react';
+import { Chrome, TrendingUp, Key } from 'lucide-react';
 import { useAuth } from './AuthProvider';
+import { StaticLoginForm } from './StaticLoginForm';
 
 export const LoginPage = () => {
   const { signInWithGoogle } = useAuth();
+  const [showStaticLogin, setShowStaticLogin] = useState(false);
+
+  const handleStaticLoginSuccess = (userData: any) => {
+    // Redirect to main page after successful static login
+    window.location.href = '/';
+  };
+
+  if (showStaticLogin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" 
+           style={{ background: 'var(--gradient-card)' }}>
+        <StaticLoginForm 
+          onSuccess={handleStaticLoginSuccess}
+          onCancel={() => setShowStaticLogin(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" 
@@ -40,6 +59,24 @@ export const LoginPage = () => {
             >
               <Chrome className="w-5 h-5 mr-3" />
               Continue with Google
+            </Button>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or</span>
+              </div>
+            </div>
+            
+            <Button 
+              onClick={() => setShowStaticLogin(true)}
+              variant="outline"
+              className="w-full h-12 text-lg font-semibold transition-all duration-300 hover:scale-105"
+            >
+              <Key className="w-5 h-5 mr-3" />
+              Login with Username
             </Button>
             
             <div className="text-center">

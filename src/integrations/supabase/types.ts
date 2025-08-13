@@ -448,6 +448,65 @@ export type Database = {
         }
         Relationships: []
       }
+      group_members: {
+        Row: {
+          added_by: string
+          group_id: string
+          id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          added_by: string
+          group_id: string
+          id?: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          added_by?: string
+          group_id?: string
+          id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       guest_tokens: {
         Row: {
           created_at: string
@@ -609,6 +668,71 @@ export type Database = {
         }
         Relationships: []
       }
+      static_user_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          last_activity: string
+          session_token: string
+          static_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          last_activity?: string
+          session_token: string
+          static_user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          last_activity?: string
+          session_token?: string
+          static_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "static_user_sessions_static_user_id_fkey"
+            columns: ["static_user_id"]
+            isOneToOne: false
+            referencedRelation: "static_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      static_users: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          password_hash: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          password_hash: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          password_hash?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -617,6 +741,14 @@ export type Database = {
       archive_old_orders: {
         Args: { days_old?: number }
         Returns: Json
+      }
+      authenticate_static_user: {
+        Args: { username_param: string; password_param: string }
+        Returns: {
+          user_id: string
+          username: string
+          session_token: string
+        }[]
       }
       calculate_loyalty_points: {
         Args: { amount: number }
@@ -648,6 +780,10 @@ export type Database = {
         }
         Returns: string
       }
+      create_static_user: {
+        Args: { username_param: string; password_param: string }
+        Returns: string
+      }
       generate_order_code: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -663,6 +799,14 @@ export type Database = {
       get_database_stats: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      get_user_groups: {
+        Args: { target_user_id?: string }
+        Returns: {
+          group_id: string
+          group_name: string
+          group_description: string
+        }[]
       }
       is_admin: {
         Args: Record<PropertyKey, never>

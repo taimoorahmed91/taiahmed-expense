@@ -259,8 +259,33 @@ export const GroupManagement = () => {
     }
   };
 
+  const [staticUsers, setStaticUsers] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchStaticUsers();
+  }, []);
+
+  const fetchStaticUsers = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('static_users')
+        .select('*')
+        .eq('is_active', true);
+      
+      if (!error) {
+        setStaticUsers(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching static users:', error);
+    }
+  };
+
   const availableUsers = users.filter(user => 
     !groupMembers.some(member => member.user_id === user.user_id)
+  );
+
+  const availableStaticUsers = staticUsers.filter(staticUser => 
+    !groupMembers.some(member => member.user_id === staticUser.id)
   );
 
   if (loading) {
@@ -404,7 +429,12 @@ export const GroupManagement = () => {
                         <SelectContent>
                           {availableUsers.map((user) => (
                             <SelectItem key={user.id} value={user.user_id}>
-                              {user.full_name || user.email}
+                              📧 {user.full_name || user.email}
+                            </SelectItem>
+                          ))}
+                          {availableStaticUsers.map((staticUser) => (
+                            <SelectItem key={staticUser.id} value={staticUser.id}>
+                              👤 {staticUser.username}
                             </SelectItem>
                           ))}
                         </SelectContent>
