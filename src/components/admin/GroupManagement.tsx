@@ -306,7 +306,7 @@ export const GroupManagement = () => {
         
         <Dialog open={createGroupOpen} onOpenChange={setCreateGroupOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-primary hover:opacity-90">
+            <Button className="bg-gradient-primary hover:opacity-90 text-white">
               <Plus className="w-4 h-4 mr-2" />
               Create Group
             </Button>
@@ -429,7 +429,7 @@ export const GroupManagement = () => {
                         <SelectContent>
                           {availableUsers.map((user) => (
                             <SelectItem key={user.id} value={user.user_id}>
-                              📧 {user.full_name || user.email}
+                              📧 {user.full_name || user.email} ({user.email})
                             </SelectItem>
                           ))}
                           {availableStaticUsers.map((staticUser) => (

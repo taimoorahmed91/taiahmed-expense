@@ -153,7 +153,7 @@ export const StaticUserManagement = () => {
         
         <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-primary hover:opacity-90">
+            <Button className="bg-gradient-primary hover:opacity-90 text-white">
               <Plus className="w-4 h-4 mr-2" />
               Create Static User
             </Button>
