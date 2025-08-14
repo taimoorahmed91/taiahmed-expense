@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -715,7 +715,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          created_by: string
+          created_by?: string
           id?: string
           is_active?: boolean
           password_hash: string
@@ -743,11 +743,11 @@ export type Database = {
         Returns: Json
       }
       authenticate_static_user: {
-        Args: { username_param: string; password_param: string }
+        Args: { password_param: string; username_param: string }
         Returns: {
+          session_token: string
           user_id: string
           username: string
-          session_token: string
         }[]
       }
       calculate_loyalty_points: {
@@ -772,16 +772,16 @@ export type Database = {
       }
       create_or_update_session: {
         Args: {
-          user_id_param?: string
           guest_token_param?: string
+          ip_address_param?: string
           session_token_param?: string
           user_agent_param?: string
-          ip_address_param?: string
+          user_id_param?: string
         }
         Returns: string
       }
       create_static_user: {
-        Args: { username_param: string; password_param: string }
+        Args: { password_param: string; username_param: string }
         Returns: string
       }
       generate_order_code: {
@@ -803,9 +803,9 @@ export type Database = {
       get_user_groups: {
         Args: { target_user_id?: string }
         Returns: {
+          group_description: string
           group_id: string
           group_name: string
-          group_description: string
         }[]
       }
       is_admin: {
@@ -817,7 +817,7 @@ export type Database = {
         Returns: boolean
       }
       toggle_admin_status: {
-        Args: { target_user_id: string; new_admin_status: boolean }
+        Args: { new_admin_status: boolean; target_user_id: string }
         Returns: boolean
       }
       update_session_activity: {
