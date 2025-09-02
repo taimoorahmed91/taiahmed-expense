@@ -4,10 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { Plus } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface Category {
   id: string;
@@ -23,6 +27,11 @@ export const ExpenseForm = () => {
   const [categoryId, setCategoryId] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedTime, setSelectedTime] = useState(() => {
+    const now = new Date();
+    return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  });
 
   // Default categories to create if none exist
   const defaultCategories = [
@@ -102,9 +111,10 @@ export const ExpenseForm = () => {
     setLoading(true);
 
     try {
-      // Get current date in CET timezone
-      const now = new Date();
-      const cetDate = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Warsaw"}));
+      // Combine selected date and time
+      const [hours, minutes] = selectedTime.split(':').map(Number);
+      const transactionDateTime = new Date(selectedDate);
+      transactionDateTime.setHours(hours, minutes, 0, 0);
       
       const { error } = await supabase
         .from('expense_transactions')
@@ -114,7 +124,7 @@ export const ExpenseForm = () => {
             amount: parseFloat(amount),
             description: place,
             category_id: categoryId,
-            transaction_date: cetDate.toISOString().split('T')[0], // YYYY-MM-DD format
+            transaction_date: transactionDateTime.toISOString().split('T')[0], // YYYY-MM-DD format
           }
         ]);
 
@@ -129,6 +139,9 @@ export const ExpenseForm = () => {
       setAmount('');
       setPlace('');
       setCategoryId('');
+      setSelectedDate(new Date());
+      const now = new Date();
+      setSelectedTime(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
     } catch (error) {
       console.error('Error adding expense:', error);
       toast({
@@ -205,6 +218,49 @@ export const ExpenseForm = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full h-12 justify-start text-left font-normal border-2 focus:border-primary",
+                        !selectedDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-3 h-4 w-4" />
+                      {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => date && setSelectedDate(date)}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="time" className="text-base font-medium">Time</Label>
+                <div className="relative">
+                  <Clock className="absolute left-4 top-4 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="time"
+                    type="time"
+                    value={selectedTime}
+                    onChange={(e) => setSelectedTime(e.target.value)}
+                    className="pl-12 h-12 text-base border-2 focus:border-primary"
+                  />
+                </div>
+              </div>
             </div>
 
             <Button 
