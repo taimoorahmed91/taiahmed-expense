@@ -32,6 +32,7 @@ export const ExpenseForm = () => {
     const now = new Date();
     return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
   });
+  const [paidBy, setPaidBy] = useState('');
 
   // Default categories to create if none exist
   const defaultCategories = [

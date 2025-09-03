@@ -378,6 +378,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          paid_by: string | null
           receipt_url: string | null
           tags: string[] | null
           transaction_date: string
@@ -390,6 +391,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          paid_by?: string | null
           receipt_url?: string | null
           tags?: string[] | null
           transaction_date?: string
@@ -402,6 +404,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          paid_by?: string | null
           receipt_url?: string | null
           tags?: string[] | null
           transaction_date?: string
