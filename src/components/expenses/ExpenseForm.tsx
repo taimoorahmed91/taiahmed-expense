@@ -140,6 +140,7 @@ export const ExpenseForm = () => {
       setAmount('');
       setPlace('');
       setCategoryId('');
+      setPaidBy('');
       setSelectedDate(new Date());
       const now = new Date();
       setSelectedTime(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
