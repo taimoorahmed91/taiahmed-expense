@@ -36,7 +36,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { formatDistanceToNow, format } from 'date-fns';
-import { Edit, Trash2, Search, CheckCircle, XCircle, Calendar, User } from 'lucide-react';
+import { Edit, Trash2, Search, CheckCircle, XCircle, Calendar, User, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Expense {
@@ -72,8 +72,15 @@ export const CorrectionList = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [readdingExpense, setReaddingExpense] = useState<Expense | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [editForm, setEditForm] = useState({
+    amount: '',
+    description: '',
+    category_id: '',
+    transaction_date: ''
+  });
+  const [readdForm, setReaddForm] = useState({
     amount: '',
     description: '',
     category_id: '',
@@ -191,6 +198,49 @@ export const CorrectionList = () => {
       toast({
         title: "Error",
         description: "Failed to update expense",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReadd = (expense: Expense) => {
+    setReaddingExpense(expense);
+    setReaddForm({
+      amount: expense.amount.toString(),
+      description: expense.description || '',
+      category_id: expense.category_id,
+      transaction_date: format(new Date(), 'yyyy-MM-dd')
+    });
+  };
+
+  const handleReaddSubmit = async () => {
+    if (!readdingExpense || !user) return;
+
+    try {
+      const { error } = await supabase
+        .from('expense_transactions')
+        .insert({
+          amount: parseFloat(readdForm.amount),
+          description: readdForm.description,
+          category_id: readdForm.category_id,
+          transaction_date: readdForm.transaction_date,
+          user_id: user.id
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Expense re-added successfully",
+      });
+
+      setReaddingExpense(null);
+      fetchExpenses();
+    } catch (error) {
+      console.error('Error re-adding expense:', error);
+      toast({
+        title: "Error",
+        description: "Failed to re-add expense",
         variant: "destructive",
       });
     }
@@ -394,6 +444,84 @@ export const CorrectionList = () => {
                             Update
                           </Button>
                           <Button variant="outline" onClick={() => setEditingExpense(null)} className="flex-1">
+                            <XCircle className="w-4 h-4 mr-2" />
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Re-add Dialog */}
+                  <Dialog open={readdingExpense?.id === expense.id} onOpenChange={(open) => !open && setReaddingExpense(null)}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleReadd(expense)}
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Re-add Expense</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="readd-amount">Amount</Label>
+                          <Input
+                            id="readd-amount"
+                            type="number"
+                            step="0.01"
+                            value={readdForm.amount}
+                            onChange={(e) => setReaddForm({...readdForm, amount: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="readd-description">Description</Label>
+                          <Textarea
+                            id="readd-description"
+                            value={readdForm.description}
+                            onChange={(e) => setReaddForm({...readdForm, description: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="readd-category">Category</Label>
+                          <Select value={readdForm.category_id} onValueChange={(value) => setReaddForm({...readdForm, category_id: value})}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {categories.map((category) => (
+                                <SelectItem key={category.id} value={category.id}>
+                                  <div className="flex items-center gap-2">
+                                    <div 
+                                      className="w-3 h-3 rounded-full" 
+                                      style={{ backgroundColor: category.color }}
+                                    />
+                                    {category.name}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="readd-date">Date</Label>
+                          <Input
+                            id="readd-date"
+                            type="date"
+                            value={readdForm.transaction_date}
+                            onChange={(e) => setReaddForm({...readdForm, transaction_date: e.target.value})}
+                          />
+                        </div>
+                        <div className="flex gap-2 pt-4">
+                          <Button onClick={handleReaddSubmit} className="flex-1">
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Re-add
+                          </Button>
+                          <Button variant="outline" onClick={() => setReaddingExpense(null)} className="flex-1">
                             <XCircle className="w-4 h-4 mr-2" />
                             Cancel
                           </Button>
