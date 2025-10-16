@@ -6,6 +6,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { ExpenseTrendsChart } from './ExpenseTrendsChart';
 import { ExpenseDistributionChart } from './ExpenseDistributionChart';
 import { BudgetAlerts } from '@/components/budget/BudgetAlerts';
+import { SevenDayExpenseTable } from './SevenDayExpenseTable';
 import {
   DndContext,
   DragEndEvent,
@@ -281,6 +282,8 @@ export const DashboardOverview = () => {
       <ExpenseTrendsChart />
       
       <ExpenseDistributionChart />
+      
+      <SevenDayExpenseTable />
     </div>
   );
 };
