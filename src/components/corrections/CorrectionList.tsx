@@ -33,10 +33,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { formatDistanceToNow, format } from 'date-fns';
-import { Edit, Trash2, Search, CheckCircle, XCircle, Calendar, User, Copy } from 'lucide-react';
+import { Edit, Trash2, Search, CheckCircle, XCircle, Calendar, User, Copy, Filter, ChevronDown, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Expense {
@@ -71,6 +72,11 @@ export const CorrectionList = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [amountFilter, setAmountFilter] = useState({ operator: '', value: '' });
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [dateFromFilter, setDateFromFilter] = useState('');
+  const [dateToFilter, setDateToFilter] = useState('');
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [readdingExpense, setReaddingExpense] = useState<Expense | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -271,10 +277,56 @@ export const CorrectionList = () => {
     }
   };
 
-  const filteredExpenses = expenses.filter(expense =>
-    expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    expense.expense_categories.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredExpenses = expenses.filter(expense => {
+    // Name/description filter
+    const matchesSearch = searchTerm === '' ||
+      expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      expense.expense_categories.name.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Amount filter
+    let matchesAmount = true;
+    if (amountFilter.operator && amountFilter.value) {
+      const filterValue = parseFloat(amountFilter.value);
+      if (!isNaN(filterValue)) {
+        switch (amountFilter.operator) {
+          case 'equals':
+            matchesAmount = expense.amount === filterValue;
+            break;
+          case 'less':
+            matchesAmount = expense.amount < filterValue;
+            break;
+          case 'greater':
+            matchesAmount = expense.amount > filterValue;
+            break;
+        }
+      }
+    }
+
+    // Category filter
+    const matchesCategory = categoryFilter === '' || categoryFilter === 'all' || expense.category_id === categoryFilter;
+
+    // Date range filter
+    let matchesDateRange = true;
+    const transactionDate = new Date(expense.transaction_date);
+    if (dateFromFilter) {
+      matchesDateRange = matchesDateRange && transactionDate >= new Date(dateFromFilter);
+    }
+    if (dateToFilter) {
+      matchesDateRange = matchesDateRange && transactionDate <= new Date(dateToFilter);
+    }
+
+    return matchesSearch && matchesAmount && matchesCategory && matchesDateRange;
+  });
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setAmountFilter({ operator: '', value: '' });
+    setCategoryFilter('');
+    setDateFromFilter('');
+    setDateToFilter('');
+  };
+
+  const hasActiveFilters = searchTerm || amountFilter.operator || categoryFilter || dateFromFilter || dateToFilter;
 
   // Pagination logic
   const totalPages = Math.ceil(filteredExpenses.length / ITEMS_PER_PAGE);
@@ -282,10 +334,10 @@ export const CorrectionList = () => {
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const currentExpenses = filteredExpenses.slice(startIndex, endIndex);
 
-  // Reset to first page when search changes
+  // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, amountFilter.operator, amountFilter.value, categoryFilter, dateFromFilter, dateToFilter]);
 
   if (loading) {
     return (
@@ -304,18 +356,116 @@ export const CorrectionList = () => {
         <p className="text-muted-foreground">Edit or delete your expense records</p>
       </div>
 
-      {/* Search */}
+      {/* Search and Filters */}
       <Card>
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Search expenses..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+        <CardContent className="p-4 space-y-4">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search by name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button
+              variant={filtersOpen ? "default" : "outline"}
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              className="flex items-center gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              Filters
+              {hasActiveFilters && (
+                <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                  !
+                </Badge>
+              )}
+            </Button>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="icon" onClick={clearFilters} title="Clear all filters">
+                <X className="w-4 h-4" />
+              </Button>
+            )}
           </div>
+
+          <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <CollapsibleContent className="space-y-4 pt-4 border-t border-border">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Amount Filter */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Amount</Label>
+                  <div className="flex gap-2">
+                    <Select 
+                      value={amountFilter.operator} 
+                      onValueChange={(value) => setAmountFilter({ ...amountFilter, operator: value })}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Condition" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="equals">Equals</SelectItem>
+                        <SelectItem value="less">Less than</SelectItem>
+                        <SelectItem value="greater">Greater than</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Value"
+                      value={amountFilter.value}
+                      onChange={(e) => setAmountFilter({ ...amountFilter, value: e.target.value })}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                {/* Category Filter */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Category</Label>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All categories</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: category.color }}
+                            />
+                            {category.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Date From Filter */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Date From</Label>
+                  <Input
+                    type="date"
+                    value={dateFromFilter}
+                    onChange={(e) => setDateFromFilter(e.target.value)}
+                  />
+                </div>
+
+                {/* Date To Filter */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Date To</Label>
+                  <Input
+                    type="date"
+                    value={dateToFilter}
+                    onChange={(e) => setDateToFilter(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </CardContent>
       </Card>
 

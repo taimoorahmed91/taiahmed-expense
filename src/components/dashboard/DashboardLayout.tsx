@@ -32,7 +32,7 @@ export const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardL
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'expenses', label: 'Expenses', icon: CreditCard },
-    { id: 'correction', label: 'Correction', icon: Edit3 },
+    { id: 'correction', label: 'Data', icon: Edit3 },
     { id: 'analytics', label: 'Analytics', icon: PieChart },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
