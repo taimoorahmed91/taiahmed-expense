@@ -451,6 +451,72 @@ export type Database = {
         }
         Relationships: []
       }
+      fittrack_gym_sessions: {
+        Row: {
+          created_at: string
+          date: string
+          duration: number
+          exercise: string
+          id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          duration: number
+          exercise: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          duration?: number
+          exercise?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fittrack_meals: {
+        Row: {
+          calories: number
+          created_at: string
+          date: string
+          food: string
+          id: string
+          time: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calories: number
+          created_at?: string
+          date: string
+          food: string
+          id?: string
+          time: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calories?: number
+          created_at?: string
+          date?: string
+          food?: string
+          id?: string
+          time?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       group_members: {
         Row: {
           added_by: string
@@ -741,10 +807,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      archive_old_orders: {
-        Args: { days_old?: number }
-        Returns: Json
-      }
+      archive_old_orders: { Args: { days_old?: number }; Returns: Json }
       authenticate_static_user: {
         Args: { password_param: string; username_param: string }
         Returns: {
@@ -753,26 +816,11 @@ export type Database = {
           username: string
         }[]
       }
-      calculate_loyalty_points: {
-        Args: { amount: number }
-        Returns: number
-      }
-      cleanup_expired_sessions: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      cleanup_old_guest_tokens: {
-        Args: { days_old?: number }
-        Returns: Json
-      }
-      cleanup_old_sessions: {
-        Args: { hours_old?: number }
-        Returns: Json
-      }
-      create_guest_token: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      calculate_loyalty_points: { Args: { amount: number }; Returns: number }
+      cleanup_expired_sessions: { Args: never; Returns: undefined }
+      cleanup_old_guest_tokens: { Args: { days_old?: number }; Returns: Json }
+      cleanup_old_sessions: { Args: { hours_old?: number }; Returns: Json }
+      create_guest_token: { Args: never; Returns: string }
       create_or_update_session: {
         Args: {
           guest_token_param?: string
@@ -787,22 +835,10 @@ export type Database = {
         Args: { password_param: string; username_param: string }
         Returns: string
       }
-      generate_order_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      generate_secure_guest_token: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_active_session_count: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      get_database_stats: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      generate_order_code: { Args: never; Returns: string }
+      generate_secure_guest_token: { Args: never; Returns: string }
+      get_active_session_count: { Args: never; Returns: number }
+      get_database_stats: { Args: never; Returns: Json }
       get_user_groups: {
         Args: { target_user_id?: string }
         Returns: {
@@ -811,14 +847,8 @@ export type Database = {
           group_name: string
         }[]
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_expense_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_admin: { Args: never; Returns: boolean }
+      is_expense_admin: { Args: never; Returns: boolean }
       toggle_admin_status: {
         Args: { new_admin_status: boolean; target_user_id: string }
         Returns: boolean
@@ -827,10 +857,7 @@ export type Database = {
         Args: { session_token_param: string }
         Returns: boolean
       }
-      validate_guest_token: {
-        Args: { token_value: string }
-        Returns: boolean
-      }
+      validate_guest_token: { Args: { token_value: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
