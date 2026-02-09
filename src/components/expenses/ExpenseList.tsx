@@ -52,7 +52,7 @@ export const ExpenseList = () => {
             color
           )
         `)
-        .order('created_at', { ascending: false })
+        .order('transaction_date', { ascending: false })
         .limit(10);
 
       // If personal mode, only show user's own expenses
@@ -165,7 +165,7 @@ export const ExpenseList = () => {
                   {expense.category.name}
                 </Badge>
                 <div className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(expense.created_at), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(expense.transaction_date + 'T00:00:00'), { addSuffix: true })}
                 </div>
               </div>
             </div>
