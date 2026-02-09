@@ -42,6 +42,8 @@ interface DashboardStats {
   averageExpense: number;
   topCategory: string;
   monthlyBudget: number;
+  totalRecordCount: number;
+  firstRecordDate: string | null;
 }
 
 interface DashboardCard {
@@ -63,7 +65,9 @@ export const DashboardOverview = () => {
     transactionCount: 0,
     averageExpense: 0,
     topCategory: 'No expenses yet',
-    monthlyBudget: 0
+    monthlyBudget: 0,
+    totalRecordCount: 0,
+    firstRecordDate: null,
   });
   const [loading, setLoading] = useState(true);
   const [cardOrder, setCardOrder] = useState(['monthly', 'total', 'nonRental', 'average', 'topCategory']);
@@ -104,6 +108,14 @@ export const DashboardOverview = () => {
         .eq('user_id', user?.id);
 
       if (totalError) throw totalError;
+
+      // Get first record date and total count
+      const { data: firstRecord } = await supabase
+        .from('expense_transactions')
+        .select('transaction_date')
+        .eq('user_id', user?.id)
+        .order('transaction_date', { ascending: true })
+        .limit(1);
 
       // Get monthly budget for current period
       const currentDate = new Date().toISOString().split('T')[0];
@@ -152,7 +164,9 @@ export const DashboardOverview = () => {
         transactionCount,
         averageExpense,
         topCategory,
-        monthlyBudget
+        monthlyBudget,
+        totalRecordCount: totalExpenses?.length || 0,
+        firstRecordDate: firstRecord?.[0]?.transaction_date || null,
       });
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
@@ -191,7 +205,7 @@ export const DashboardOverview = () => {
       id: 'total',
       title: 'Total Expenses',
       value: `${stats.totalExpenses.toFixed(2)} zł`,
-      subtitle: 'All time total',
+      subtitle: `${stats.totalRecordCount} records${stats.firstRecordDate ? ` · since ${new Date(stats.firstRecordDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}`,
       icon: TrendingUp,
       className: 'border-2 border-secondary/20 bg-gradient-to-br from-secondary/5 to-secondary/10',
       iconColor: 'text-secondary-foreground'
