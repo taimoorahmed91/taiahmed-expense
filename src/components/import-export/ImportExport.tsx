@@ -38,7 +38,7 @@ export const ImportExport = () => {
   const [importing, setImporting] = useState(false);
   const [importPreview, setImportPreview] = useState<ExportExpense[] | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(null);
+  const [importResult, setImportResult] = useState<{ success: number; failed: number; skipped: number } | null>(null);
 
   const fetchCategories = async () => {
     const { data } = await supabase
@@ -157,24 +157,33 @@ export const ImportExport = () => {
       const categories = await fetchCategories();
       const catMap = new Map(categories.map(c => [c.name.toLowerCase(), c.id]));
 
+      // Fetch existing transactions for duplicate detection
+      const { data: existingData } = await supabase
+        .from('expense_transactions')
+        .select('amount, description, transaction_date, category_id')
+        .eq('user_id', user.id);
+
+      const existingSet = new Set(
+        (existingData || []).map(e =>
+          `${e.amount}|${e.transaction_date}|${(e.description || '').toLowerCase()}|${e.category_id}`
+        )
+      );
+
       let success = 0;
       let failed = 0;
+      let skipped = 0;
 
-      // Insert in batches of 50
       const batchSize = 50;
       for (let i = 0; i < importPreview.length; i += batchSize) {
         const batch = importPreview.slice(i, i + batchSize);
         const rows = batch.map(r => {
-          // Resolve category: prefer category_id, fallback to name lookup
           let resolvedCategoryId = r.category_id;
           if (!resolvedCategoryId && r.category_name) {
             resolvedCategoryId = catMap.get(r.category_name.toLowerCase()) || '';
           }
-          // If still no category, use first available
           if (!resolvedCategoryId && categories.length > 0) {
             resolvedCategoryId = categories[0].id;
           }
-
           return {
             amount: Number(r.amount),
             description: r.description || null,
@@ -186,23 +195,33 @@ export const ImportExport = () => {
           };
         }).filter(r => r.category_id);
 
-        if (rows.length > 0) {
-          const { error } = await supabase.from('expense_transactions').insert(rows);
+        // Filter out duplicates
+        const newRows = rows.filter(r => {
+          const key = `${r.amount}|${r.transaction_date}|${(r.description || '').toLowerCase()}|${r.category_id}`;
+          if (existingSet.has(key)) return false;
+          existingSet.add(key);
+          return true;
+        });
+
+        skipped += rows.length - newRows.length;
+
+        if (newRows.length > 0) {
+          const { error } = await supabase.from('expense_transactions').insert(newRows);
           if (error) {
             console.error('Batch insert error:', error);
-            failed += rows.length;
+            failed += newRows.length;
           } else {
-            success += rows.length;
+            success += newRows.length;
           }
-        } else {
+        } else if (rows.length === 0) {
           failed += batch.length;
         }
       }
 
-      setImportResult({ success, failed });
+      setImportResult({ success, failed, skipped });
       toast({
         title: 'Import complete',
-        description: `${success} imported, ${failed} failed`,
+        description: `${success} imported, ${skipped} duplicates skipped, ${failed} failed`,
         variant: failed > 0 ? 'destructive' : 'default',
       });
     } catch (err) {
@@ -305,7 +324,7 @@ export const ImportExport = () => {
                 ) : (
                   <AlertCircle className="w-4 h-4 text-destructive" />
                 )}
-                <span>{importResult.success} imported, {importResult.failed} failed</span>
+                <span>{importResult.success} imported, {importResult.skipped} duplicates skipped, {importResult.failed} failed</span>
               </div>
             )}
           </CardContent>
