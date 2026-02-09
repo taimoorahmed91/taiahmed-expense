@@ -157,15 +157,15 @@ export const ImportExport = () => {
       const categories = await fetchCategories();
       const catMap = new Map(categories.map(c => [c.name.toLowerCase(), c.id]));
 
-      // Fetch existing transactions for duplicate detection
+      // Fetch existing transactions for duplicate detection (using amount + date + description only)
       const { data: existingData } = await supabase
         .from('expense_transactions')
-        .select('amount, description, transaction_date, category_id')
+        .select('amount, description, transaction_date')
         .eq('user_id', user.id);
 
       const existingSet = new Set(
         (existingData || []).map(e =>
-          `${e.amount}|${e.transaction_date}|${(e.description || '').toLowerCase()}|${e.category_id}`
+          `${e.amount}|${e.transaction_date}|${(e.description || '').toLowerCase().trim()}`
         )
       );
 
@@ -195,9 +195,9 @@ export const ImportExport = () => {
           };
         }).filter(r => r.category_id);
 
-        // Filter out duplicates
+        // Filter out duplicates using amount + date + description
         const newRows = rows.filter(r => {
-          const key = `${r.amount}|${r.transaction_date}|${(r.description || '').toLowerCase()}|${r.category_id}`;
+          const key = `${r.amount}|${r.transaction_date}|${(r.description || '').toLowerCase().trim()}`;
           if (existingSet.has(key)) return false;
           existingSet.add(key);
           return true;
