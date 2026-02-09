@@ -451,6 +451,111 @@ export type Database = {
         }
         Relationships: []
       }
+      fittrack_daily_notes: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          severity: number | null
+          tags: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
+          severity?: number | null
+          tags?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          severity?: number | null
+          tags?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fittrack_daily_summary: {
+        Row: {
+          calorie_goal: number
+          calories_consumed: number
+          calories_remaining: number
+          created_at: string
+          date: string
+          id: string
+          updated_at: string
+          user_id: string
+          workout_status: string
+        }
+        Insert: {
+          calorie_goal?: number
+          calories_consumed?: number
+          calories_remaining?: number
+          created_at?: string
+          date?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          workout_status?: string
+        }
+        Update: {
+          calorie_goal?: number
+          calories_consumed?: number
+          calories_remaining?: number
+          created_at?: string
+          date?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          workout_status?: string
+        }
+        Relationships: []
+      }
+      fittrack_goals: {
+        Row: {
+          category: string
+          created_at: string
+          end_date: string
+          goal_type: string
+          id: string
+          start_date: string
+          target_value: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          end_date: string
+          goal_type: string
+          id?: string
+          start_date: string
+          target_value: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          end_date?: string
+          goal_type?: string
+          id?: string
+          start_date?: string
+          target_value?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       fittrack_gym_sessions: {
         Row: {
           created_at: string
@@ -459,6 +564,7 @@ export type Database = {
           exercise: string
           id: string
           notes: string | null
+          start_time: string | null
           updated_at: string
           user_id: string
         }
@@ -469,6 +575,7 @@ export type Database = {
           exercise: string
           id?: string
           notes?: string | null
+          start_time?: string | null
           updated_at?: string
           user_id: string
         }
@@ -479,6 +586,7 @@ export type Database = {
           exercise?: string
           id?: string
           notes?: string | null
+          start_time?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -512,6 +620,165 @@ export type Database = {
           food?: string
           id?: string
           time?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fittrack_sleep: {
+        Row: {
+          created_at: string
+          date: string
+          hours: number
+          id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          hours: number
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          hours?: number
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fittrack_user_settings: {
+        Row: {
+          created_at: string
+          daily_calorie_goal: number
+          email_subscribed: boolean
+          id: string
+          notification_schedule: string | null
+          telegram_chat_id: string | null
+          telegram_chat_id_set: boolean
+          telegram_subscribed: boolean
+          updated_at: string
+          user_id: string
+          weight_measurement_interval: number
+        }
+        Insert: {
+          created_at?: string
+          daily_calorie_goal?: number
+          email_subscribed?: boolean
+          id?: string
+          notification_schedule?: string | null
+          telegram_chat_id?: string | null
+          telegram_chat_id_set?: boolean
+          telegram_subscribed?: boolean
+          updated_at?: string
+          user_id: string
+          weight_measurement_interval?: number
+        }
+        Update: {
+          created_at?: string
+          daily_calorie_goal?: number
+          email_subscribed?: boolean
+          id?: string
+          notification_schedule?: string | null
+          telegram_chat_id?: string | null
+          telegram_chat_id_set?: boolean
+          telegram_subscribed?: boolean
+          updated_at?: string
+          user_id?: string
+          weight_measurement_interval?: number
+        }
+        Relationships: []
+      }
+      fittrack_waist: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+          waist: number
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+          waist: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+          waist?: number
+        }
+        Relationships: []
+      }
+      fittrack_weight: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+          weight: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+          weight?: number
+        }
+        Relationships: []
+      }
+      fittrack_workout_templates: {
+        Row: {
+          created_at: string
+          exercises: Json
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          exercises?: Json
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          exercises?: Json
+          id?: string
+          name?: string
           updated_at?: string
           user_id?: string
         }
@@ -682,27 +949,33 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approved: string | null
           avatar_url: string | null
           created_at: string | null
           email: string | null
           full_name: string | null
           id: string
+          owner: string | null
           updated_at: string | null
         }
         Insert: {
+          approved?: string | null
           avatar_url?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
           id: string
+          owner?: string | null
           updated_at?: string | null
         }
         Update: {
+          approved?: string | null
           avatar_url?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          owner?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -770,6 +1043,13 @@ export type Database = {
             referencedRelation: "static_users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "static_user_sessions_static_user_id_fkey"
+            columns: ["static_user_id"]
+            isOneToOne: false
+            referencedRelation: "static_users_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       static_users: {
@@ -804,7 +1084,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      static_users_safe: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          is_active: boolean | null
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       archive_old_orders: { Args: { days_old?: number }; Returns: Json }
@@ -839,6 +1145,26 @@ export type Database = {
       generate_secure_guest_token: { Args: never; Returns: string }
       get_active_session_count: { Args: never; Returns: number }
       get_database_stats: { Args: never; Returns: Json }
+      get_or_create_daily_summary: {
+        Args: { p_user_id: string }
+        Returns: {
+          calorie_goal: number
+          calories_consumed: number
+          calories_remaining: number
+          created_at: string
+          date: string
+          id: string
+          updated_at: string
+          user_id: string
+          workout_status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fittrack_daily_summary"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_user_groups: {
         Args: { target_user_id?: string }
         Returns: {

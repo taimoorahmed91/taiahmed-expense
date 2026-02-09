@@ -8,6 +8,7 @@ import { DashboardOverview } from '@/components/dashboard/DashboardOverview';
 import { ExpenseForm } from '@/components/expenses/ExpenseForm';
 import { ExpenseList } from '@/components/expenses/ExpenseList';
 import { CorrectionList } from '@/components/corrections/CorrectionList';
+import { ImportExport } from '@/components/import-export/ImportExport';
 import { AnalyticsOverview } from '@/components/analytics/AnalyticsOverview';
 import { SettingsOverview } from '@/components/settings/SettingsOverview';
 
@@ -55,6 +56,8 @@ const Index = () => {
         );
       case 'correction':
         return <CorrectionList />;
+      case 'import-export':
+        return <ImportExport />;
       case 'analytics':
         return <AnalyticsOverview />;
       case 'settings':

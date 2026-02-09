@@ -11,7 +11,8 @@ import {
   X,
   TrendingUp,
   Users,
-  Edit3
+  Edit3,
+  ArrowLeftRight
 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -33,6 +34,7 @@ export const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardL
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'expenses', label: 'Expenses', icon: CreditCard },
     { id: 'correction', label: 'Data', icon: Edit3 },
+    { id: 'import-export', label: 'Import/Export', icon: ArrowLeftRight },
     { id: 'analytics', label: 'Analytics', icon: PieChart },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
