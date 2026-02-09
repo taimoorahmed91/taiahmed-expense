@@ -157,17 +157,21 @@ export const ImportExport = () => {
       const categories = await fetchCategories();
       const catMap = new Map(categories.map(c => [c.name.toLowerCase(), c.id]));
 
-      // Fetch existing transactions for duplicate detection (using amount + date + description only)
+      // Fetch existing transactions for duplicate detection (count-based)
       const { data: existingData } = await supabase
         .from('expense_transactions')
         .select('amount, description, transaction_date')
         .eq('user_id', user.id);
 
-      const existingSet = new Set(
-        (existingData || []).map(e =>
-          `${e.amount}|${e.transaction_date}|${(e.description || '').toLowerCase().trim()}`
-        )
-      );
+      // Count occurrences of each key in the database
+      const existingCounts = new Map<string, number>();
+      (existingData || []).forEach(e => {
+        const key = `${e.amount}|${e.transaction_date}|${(e.description || '').toLowerCase().trim()}`;
+        existingCounts.set(key, (existingCounts.get(key) || 0) + 1);
+      });
+
+      // Count occurrences of each key in the import file
+      const importCounts = new Map<string, number>();
 
       let success = 0;
       let failed = 0;
@@ -195,11 +199,14 @@ export const ImportExport = () => {
           };
         }).filter(r => r.category_id);
 
-        // Filter out duplicates using amount + date + description
+        // Filter out duplicates: only skip if DB already has enough of this key
         const newRows = rows.filter(r => {
           const key = `${r.amount}|${r.transaction_date}|${(r.description || '').toLowerCase().trim()}`;
-          if (existingSet.has(key)) return false;
-          existingSet.add(key);
+          const dbCount = existingCounts.get(key) || 0;
+          const alreadyImported = importCounts.get(key) || 0;
+          importCounts.set(key, alreadyImported + 1);
+          // Skip if this occurrence is already covered by existing DB records
+          if (alreadyImported < dbCount) return false;
           return true;
         });
 
