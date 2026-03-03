@@ -165,7 +165,7 @@ export const ExpenseList = () => {
                   {expense.category.name}
                 </Badge>
                 <div className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(expense.transaction_date + 'T00:00:00'), { addSuffix: true })}
+                  {new Date(expense.transaction_date + 'T00:00:00').toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })} · {formatDistanceToNow(new Date(expense.transaction_date + 'T00:00:00'), { addSuffix: true })}
                 </div>
               </div>
             </div>
