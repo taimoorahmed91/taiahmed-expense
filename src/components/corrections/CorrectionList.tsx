@@ -37,7 +37,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { formatDistanceToNow, format } from 'date-fns';
-import { Edit, Trash2, Search, CheckCircle, XCircle, Calendar, User, Copy, Filter, ChevronDown, X } from 'lucide-react';
+import { Edit, Trash2, Search, CheckCircle, XCircle, Calendar, User, Copy, Filter, ChevronDown, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Expense {
@@ -80,6 +80,8 @@ export const CorrectionList = () => {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [readdingExpense, setReaddingExpense] = useState<Expense | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortField, setSortField] = useState<'transaction_date' | 'amount' | 'created_at'>('transaction_date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [editForm, setEditForm] = useState({
     amount: '',
     description: '',
@@ -121,7 +123,7 @@ export const CorrectionList = () => {
           )
         `)
         .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
+        .order('transaction_date', { ascending: false });
 
       if (error) throw error;
 
@@ -316,6 +318,20 @@ export const CorrectionList = () => {
     }
 
     return matchesSearch && matchesAmount && matchesCategory && matchesDateRange;
+  }).sort((a, b) => {
+    let comparison = 0;
+    switch (sortField) {
+      case 'transaction_date':
+        comparison = new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime();
+        break;
+      case 'amount':
+        comparison = a.amount - b.amount;
+        break;
+      case 'created_at':
+        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        break;
+    }
+    return sortDirection === 'asc' ? comparison : -comparison;
   });
 
   const clearFilters = () => {
@@ -327,6 +343,20 @@ export const CorrectionList = () => {
   };
 
   const hasActiveFilters = searchTerm || amountFilter.operator || categoryFilter || dateFromFilter || dateToFilter;
+
+  const handleSort = (field: 'transaction_date' | 'amount' | 'created_at') => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: string }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 opacity-50" />;
+    return sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />;
+  };
 
   // Pagination logic
   const totalPages = Math.ceil(filteredExpenses.length / ITEMS_PER_PAGE);
@@ -469,7 +499,7 @@ export const CorrectionList = () => {
         </CardContent>
       </Card>
 
-      {/* Expenses List */}
+      {/* Sort Controls & Expenses List */}
       <Card className="border-2 border-muted/50 shadow-lg">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center justify-between text-xl">
@@ -480,6 +510,36 @@ export const CorrectionList = () => {
               </span>
             )}
           </CardTitle>
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant={sortField === 'transaction_date' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleSort('transaction_date')}
+              className="flex items-center gap-1 text-xs"
+            >
+              <Calendar className="w-3 h-3" />
+              Date
+              <SortIcon field="transaction_date" />
+            </Button>
+            <Button
+              variant={sortField === 'amount' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleSort('amount')}
+              className="flex items-center gap-1 text-xs"
+            >
+              Amount
+              <SortIcon field="amount" />
+            </Button>
+            <Button
+              variant={sortField === 'created_at' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleSort('created_at')}
+              className="flex items-center gap-1 text-xs"
+            >
+              Added
+              <SortIcon field="created_at" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {filteredExpenses.length === 0 ? (
